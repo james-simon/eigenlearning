@@ -27,6 +27,13 @@ def sample_kernel(kernel_fn, cosines, d, norm=1, k_type='ntk'):
 def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, print_every=None):
   (train_X, train_y), (test_X, test_y) = dataset
 
+  if len(train_X) == 0:
+    return {
+      'train_preds': np.array([]),
+      'test_preds': np.zeros_like(test_y),
+      'epcs': 0,
+    }
+
   init_fn, apply_fn_uncentered, _ = net_fns
   _, initial_params = init_fn(subkey, (-1, train_X.shape[1]))
   apply_fn = jit(lambda params, x: apply_fn_uncentered(params, x) - apply_fn_uncentered(initial_params, x))

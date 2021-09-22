@@ -2,7 +2,7 @@ import jax.numpy as np
 from jax import random
 
 import scipy as sp
-from scipy.special import gegenbauer, eval_gegenbauer, roots_gegenbauer
+from scipy.special import gegenbauer, eval_gegenbauer, roots_gegenbauer, gamma
 
 from utils import sample_kernel
 

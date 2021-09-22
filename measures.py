@@ -158,13 +158,16 @@ def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kw
       'g_coeffs': g_coeff_preds
     }
 
-  # find eigenvalues
-  if domain == 'circle':
-    lambdas, mults = unit_circle_eigenvalues(kernel_fn, kwargs['M']), 1
-  if domain == 'hypercube':
-    lambdas, mults = hypercube_eigenvalues(kernel_fn, kwargs['d'])
-  if domain == 'hypersphere':
-    lambdas, mults = hypersphere_eigenvalues(kernel_fn, kwargs['d'], k_max=70)
+  if ('lambdas' in kwargs) and ('mults' in kwargs):
+    lambdas, mults = kwargs['lambdas'], kwargs['mults']
+  else:
+    # find eigenvalues
+    if domain == 'circle':
+      lambdas, mults = unit_circle_eigenvalues(kernel_fn, kwargs['M']), 1
+    if domain == 'hypercube':
+      lambdas, mults = hypercube_eigenvalues(kernel_fn, kwargs['d'])
+    if domain == 'hypersphere':
+      lambdas, mults = hypersphere_eigenvalues(kernel_fn, kwargs['d'], k_max=70)
 
   # calculate C and q
   C = find_C(n, lambdas, mults).item()

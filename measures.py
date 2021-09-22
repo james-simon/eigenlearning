@@ -143,7 +143,7 @@ def L_sum(C, lambdas, mults=1):
 
 
 def find_C(n, lambdas, mults=1):
-  return sp.optimize.fsolve(lambda C: L_sum(C, lambdas, mults=mults) - n, sorted(lambdas, reverse=True)[round(n)])
+  return sp.optimize.fsolve(lambda C: L_sum(C, lambdas, mults=mults) - n, sorted(lambdas, reverse=True)[min([round(n), len(lambdas)])])
 
 
 def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kwargs):

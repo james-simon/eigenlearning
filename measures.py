@@ -17,11 +17,12 @@ def kernel_measures(net_fns, dataset, g_fns=[], k_type='ntk'):
   _, _, kernel_fn = net_fns
   (train_X, train_y), (test_X, test_y) = dataset
 
-  predict_fn = nt.predict.gradient_descent_mse_ensemble(kernel_fn, train_X, train_y)
-
   t0 = time.time()
-  test_y_hat = predict_fn(x_test=test_X, get=k_type, compute_cov=False) if len(train_X) > 0 else np.zeros(
-    shape=(len(test_X), 1))
+  if len(train_X) > 0:
+    predict_fn = nt.predict.gradient_descent_mse_ensemble(kernel_fn, train_X, train_y)
+    test_y_hat = predict_fn(x_test=test_X, get=k_type, compute_cov=False)
+  else:
+    test_y_hat = np.zeros(shape=(len(test_X), 1))
   t = time.time() - t0
 
   lrn = ((test_y * test_y_hat).mean() / (test_y ** 2).mean()).item()

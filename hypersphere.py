@@ -22,7 +22,7 @@ def hyp_har_multiplicity(d, k):
 
 def get_hypersphere_dataset(d, target_terms, n, subkey):
     if n == 0:
-        return np.array([]), np.array([])
+        return np.array([]), [np.array([]) for terms in target_terms]
 
     xs = random.normal(subkey, shape=(n, d))
     xs = xs / np.linalg.norm(xs, axis=1)[:, None]

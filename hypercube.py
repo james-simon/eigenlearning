@@ -7,7 +7,7 @@ from utils import sample_kernel
 
 def get_hypercube_dataset(n_bits, target_terms, full=True, n=None, subkey=None):
     if not full and n == 0:
-        return np.array([]), np.array([])
+        return np.array([]), [np.array([]) for terms in target_terms]
 
     # generate the integers 0 ... 2^n_bits
     packed_bitsets = np.arange(0, 2** n_bits, 1, dtype=np.uint32)[:, None].view(np.uint8)[:, ::-1]

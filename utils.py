@@ -5,12 +5,20 @@ from jax.experimental import optimizers
 
 from neural_tangents import stax
 
-def get_net_fns(width, d_out, n_hidden_layers=1, W_std=1.4, b_std=.1):
-  layers = [stax.Dense(width, W_std=W_std, b_std=b_std), stax.Relu()] * n_hidden_layers
-  layers += [stax.Dense(d_out, W_std=1, b_std=0)]
-  init_fn, apply_fn_uncentered, kernel_fn = stax.serial(*layers)
+def get_net_fns(width, d_out, n_hidden_layers=1, W_std=1.4, b_std=.1, phi='relu'):
+  if phi == 'relu':
+    layers = [stax.Dense(width, W_std=W_std, b_std=b_std), stax.Relu()] * n_hidden_layers
+    layers += [stax.Dense(d_out, W_std=1, b_std=0)]
+  elif phi == 'erf':
+    layers = [stax.Dense(width, W_std=W_std, b_std=b_std), stax.Erf()] * n_hidden_layers
+    layers += [stax.Dense(d_out, W_std=1, b_std=0)]
+  else:
+    layers = [stax.Dense(width, W_std=W_std, b_std=b_std), stax.ElementwiseNumerical(fn=phi, deg=40)] * n_hidden_layers
+    layers += [stax.Dense(d_out, W_std=1, b_std=0)]
 
+  init_fn, apply_fn_uncentered, kernel_fn = stax.serial(*layers)
   return init_fn, apply_fn_uncentered, kernel_fn
+
 
 def sample_kernel(kernel_fn, cosines, d, norm=1, k_type='ntk'):
   sines = (1 - cosines**2)**.5

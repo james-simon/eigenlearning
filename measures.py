@@ -138,11 +138,11 @@ def learning_measure_statistics(net_fns, domain, n, f_terms, g_terms=[], pred_ty
 
   return measures
 
-
+# helper function used in calculating C
 def L_sum(C, lambdas, mults=1):
   return (mults * lambdas / (lambdas + C)).sum()
 
-
+# find C for a given eigensystem and n
 def find_C(n, lambdas, mults=1):
   return sp.optimize.fsolve(lambda C: L_sum(C, lambdas, mults=mults) - n, sorted(lambdas, reverse=True)[min([round(n), len(lambdas) - 1])])
 

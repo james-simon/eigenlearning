@@ -27,7 +27,7 @@ def kernel_measures(net_fns, dataset, g_fns=[], k_type='ntk'):
 
   lrn = ((test_y * test_y_hat).mean() / (test_y ** 2).mean()).item()
   mse = ((test_y - test_y_hat) ** 2).mean().item()
-  g_coeffs = [((g * test_y_hat).mean() / (g ** 2).mean() ** .5).item() for g in g_fns]
+  g_coeffs = [(g * test_y_hat).mean().item() for g in g_fns]
 
   return {
     'lrn': lrn,
@@ -49,7 +49,7 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
 
   lrn = ((test_y*test_y_hat).mean()/(test_y**2).mean()).item()
   mse = ((test_y - test_y_hat)**2).mean().item()
-  g_coeffs = [((g*test_y_hat).mean()/(g**2).mean()**.5).item() for g in g_fns]
+  g_coeffs = [(g*test_y_hat).mean().item() for g in g_fns]
   train_mse = ((train_y - train_y_hat)**2).mean().item()
 
   return {

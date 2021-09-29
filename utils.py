@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as np
-from jax.api import jit, grad, vmap
+from jax import jit, grad, vmap
 from jax.experimental import optimizers
 
 from neural_tangents import stax

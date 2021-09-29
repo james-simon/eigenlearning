@@ -13,8 +13,15 @@ from hypersphere import get_hypersphere_dataset, hypersphere_eigenvalues
 
 from utils import net_predictions
 
-def kernel_measures(net_fns, dataset, g_fns=[], k_type='ntk'):
-  _, _, kernel_fn = net_fns
+def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk'):
+  """Return learning measures for a kernel on a particular dataset
+
+  kernel_fn -- a JAX kernel function
+  dataset -- a double tuple containing (train_X, train_y), (test_X, test_y)
+  g_fns -- alternate target functions of the same shape as test_y to find the coefficients of
+  k_type -- 'ntk' or 'nngp
+  """
+
   (train_X, train_y), (test_X, test_y) = dataset
 
   t0 = time.time()
@@ -37,6 +44,17 @@ def kernel_measures(net_fns, dataset, g_fns=[], k_type='ntk'):
   }
 
 def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, print_every=None):
+  """Return learning measures for a network architecture on a particular dataset
+
+  net_fns -- a JAX init_fn, apply_fn (uncentered), and kernel_fn (unused here)
+  dataset -- a double tuple containing (train_X, train_y), (test_X, test_y)
+  g_fns -- alternate target functions of the same shape as test_y to find the coefficients of
+  n_epochs -- the number of epochs to train
+  lr -- the learning rate
+  subkey -- the random key to use for initialization
+  stop_mse -- a lower threshold for training MSE; training stops if it's passed
+  print_every -- if not None, train and test metrics are printed every print_every epochs
+  """
   (train_X, train_y), (test_X, test_y) = dataset
 
   t0 = time.time()
@@ -63,6 +81,17 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
 
 
 def learning_measure_statistics(net_fns, domain, n, f_terms, g_terms=[], pred_type='both', n_trials=1, **kwargs):
+  """Return experimental learning measures for a network architecture on a particular dataset
+
+  net_fns -- a JAX init_fn, apply_fn (uncentered), and kernel_fn
+  domain -- 'circle', 'hypercube', or 'hypersphere'
+  n -- the trainset size
+  f_terms -- coefficients of the target function f
+  g_terms -- list of coefficients of the probe functions g
+  pred_type -- 'net', 'kernel', or 'both'
+  n_trials -- the number of trials (sampled datasets w/random initializations) to average over
+  kwargs -- other parameters to pass to prediction functions
+  """
   if 'seed' in kwargs:
     key = np.array([0, kwargs['seed']], dtype='uint32') if isinstance(kwargs['seed'], int) else kwargs['seed']
   else:
@@ -100,7 +129,7 @@ def learning_measure_statistics(net_fns, domain, n, f_terms, g_terms=[], pred_ty
 
     dataset = ((D, f_D), (X, f_X))
 
-    measures_k = kernel_measures(net_fns,
+    measures_k = kernel_measures(net_fns[2],
                                  dataset,
                                  g_fns=g_fns,
                                  k_type='ntk') if pred_type in ['kernel', 'both'] else {}
@@ -148,6 +177,16 @@ def find_C(n, lambdas, mults=1):
 
 
 def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kwargs):
+  """Return predicted learning measures for a network architecture on a particular dataset
+
+  kernel_fn -- a JAX kernel function
+  domain -- 'circle', 'hypercube', or 'hypersphere'
+  n -- the trainset size
+  f_terms -- coefficients of the target function f
+  g_terms -- list of coefficients of the probe functions g
+  pred_type -- 'net', 'kernel', or 'both'
+  kwargs -- other optional parameters
+  """
   if n == 0:
     L = 0
     E = sum([coeff ** 2 for coeff in f_terms.values()])
@@ -159,10 +198,10 @@ def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kw
       'g_coeffs': g_coeff_preds
     }
 
+  # find eigenvalues if they're not already given
   if ('lambdas' in kwargs) and ('mults' in kwargs):
     lambdas, mults = kwargs['lambdas'], kwargs['mults']
   else:
-    # find eigenvalues
     if domain == 'circle':
       lambdas, mults = unit_circle_eigenvalues(kernel_fn, kwargs['M']), 1
     if domain == 'hypercube':

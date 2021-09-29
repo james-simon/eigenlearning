@@ -1,7 +1,18 @@
 import jax.numpy as np
 from jax import random
 
+
 def get_unit_circle_dataset(M, target_terms, full=True, n=None, subkey=None):
+  """Generate a dataset on the discretized unit circle.
+
+  M -- The number of points the unit circle is discretized into
+  target_terms -- The target functions of the dataset to return. Must be a list of dictionaries
+                  mapping eigenmodes to their coefficients, with zero coefficients omitted. For example,
+                  [{(1,'c'):1, (2,'s'):7}] denotes one target function of sqrt(2)*1*cos(theta) + sqrt(2)*7*sin(2*theta).
+  full -- if True, return all M datapoints. If False, return n randomly-chosen points.
+  n -- the dataset size.
+  subkey -- the subkey with which to choose random points.
+  """
   thetas = np.linspace(0, 2* np.pi, M, endpoint=False)
 
   if not full:
@@ -38,6 +49,13 @@ def get_unit_circle_dataset(M, target_terms, full=True, n=None, subkey=None):
 
 
 def unit_circle_eigenvalues(kernel_fn, M, normalized=True, k_type='ntk'):
+  """Return the eigenvalues of the given rotationally-invariant kernel on the discretized unit circle.
+
+  kernel_fn -- The neural_tangents kernel function. Assumed to be rotation-invariant
+  M -- The number of points the unit circle's discretized into
+  normalized -- If True, normalize all eigenvalues to sum to one
+  k_type -- Either 'ntk' or 'nngp'
+  """
   thetas, coords, _ = get_unit_circle_dataset(M, [{(0, None): 1}])
   Ks = kernel_fn(coords[0:1], coords, k_type)[0]
 

@@ -6,6 +6,18 @@ import scipy as sp
 from utils import sample_kernel
 
 def get_hypercube_dataset(n_bits, target_terms, full=True, n=None, subkey=None):
+    """Generate a dataset on the hypercube.
+
+    n_bits -- The dimensionality of the hypercube, giving M = 2^n_bits
+    target_terms -- The target functions of the dataset to return. Must be a dictionary mapping eigenmodes
+                    to their coefficients, with zero coefficients omitted. For example, {1:3, 2:7} denotes
+                    3*phi_1 + 7*phi_2, where phi_1 and phi_2 are sensitive to the first 1 and 2 bits,
+                    respectively. To choose which spins are sensitive instead of using the first k, a
+                    binary vector can be given instead of k.
+    full -- if True, return all M datapoints. If False, return n randomly-chosen points.
+    n -- the dataset size.
+    subkey -- the subkey with which to choose random points.
+    """
     if not full and n == 0:
         return np.array([]), [np.array([]) for terms in target_terms]
 
@@ -45,6 +57,13 @@ def get_hypercube_dataset(n_bits, target_terms, full=True, n=None, subkey=None):
 
 
 def hypercube_eigenvalues(kernel_fn, n_bits, normalized=True, k_type='ntk'):
+    """Return the eigenvalues of the given rotationally-invariant kernel on the hypercube, plus their multiplicities.
+
+    kernel_fn -- The neural_tangents kernel function. Assumed to be rotation-invariant
+    n_bits -- The dimensionality of the hypercube
+    normalized -- If True, normalize all eigenvalues to sum to one
+    k_type -- Either 'ntk' or 'nngp'
+    """
     Ks = sample_kernel(kernel_fn, cosines=np.linspace(1, -1, n_bits + 1), d=n_bits, norm=n_bits ** .5, k_type=k_type)
 
     if normalized:

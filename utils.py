@@ -3,6 +3,7 @@ import jax.numpy as np
 from jax import jit, grad, vmap
 from jax.experimental import optimizers
 
+import neural_tangents as nt
 from neural_tangents import stax
 
 def get_net_fns(width, d_out, n_hidden_layers=1, W_std=1.4, b_std=.1, phi='relu'):
@@ -49,7 +50,18 @@ def sample_kernel(kernel_fn, cosines, d, norm=1, k_type='ntk'):
 
   return Ks
 
-def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, print_every=None):
+def kernel_predictions(kernel_fn, dataset, k_type='ntk', diag_reg=0):
+  (train_X, train_y), (test_X, test_y) = dataset
+
+  if len(train_X) > 0:
+    predict_fn = nt.predict.gradient_descent_mse_ensemble(kernel_fn, train_X, train_y, diag_reg=diag_reg, diag_reg_absolute_scale=True)
+    test_y_hat = predict_fn(x_test=test_X, get=k_type, compute_cov=False)
+  else:
+    test_y_hat = np.zeros(shape=(len(test_X), 1))
+
+  return test_y_hat
+
+def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot_es=[], print_every=None):
   """Train a neural network and return its final predictions.
 
   net_fns -- a JAX init_fn, apply_fn (uncentered), and kernel_fn (unused here)
@@ -58,6 +70,7 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, print_ev
   lr -- the learning rate
   subkey -- the random key to use for initialization
   stop_mse -- a lower threshold for training MSE; training stops if it's passed
+  snapshot_es -- epochs at which to capture and return a snapshot of the network's train and test predictions
   print_every -- if not None, train and test metrics are printed every print_every epochs
   """
   (train_X, train_y), (test_X, test_y) = dataset
@@ -67,6 +80,7 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, print_ev
       'train_preds': np.array([]),
       'test_preds': np.zeros_like(test_y),
       'epcs': 0,
+      'snapshots': {}
     }
 
   init_fn, apply_fn_uncentered, _ = net_fns
@@ -79,6 +93,8 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, print_ev
 
   loss = lambda y, y_hat: np.mean((y - y_hat) ** 2)
   grad_loss = jit(grad(lambda params, x, y: loss(apply_fn(params, x), y)))
+
+  snapshots = {}
 
   if print_every is not None:
     print('Epoch\tTrain Loss\tTest Loss')
@@ -94,6 +110,11 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, print_ev
       test_loss = loss(apply_fn(params, test_X), test_y)
       print('{}\t{:.8f}\t{:.8f}'.format(i, train_loss, test_loss))
 
+    if i in snapshot_es:
+      train_preds = apply_fn(get_params(state), train_X).tolist()
+      test_preds = apply_fn(get_params(state), test_X).tolist()
+      snapshots[i] = {'train_preds':train_preds, 'test_preds':test_preds}
+
   train_preds = apply_fn(get_params(state), train_X)
   test_preds = apply_fn(get_params(state), test_X)
 
@@ -101,4 +122,5 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, print_ev
     'train_preds': train_preds,
     'test_preds': test_preds,
     'epcs': i + 1,
+    'snapshots': snapshots
   }

@@ -11,9 +11,9 @@ from unit_circle import get_unit_circle_dataset, unit_circle_eigenvalues
 from hypercube import get_hypercube_dataset, hypercube_eigenvalues
 from hypersphere import get_hypersphere_dataset, hypersphere_eigenvalues
 
-from utils import net_predictions
+from utils import kernel_predictions, net_predictions
 
-def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk'):
+def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0):
   """Return learning measures for a kernel on a particular dataset
 
   kernel_fn -- a JAX kernel function
@@ -22,15 +22,11 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk'):
   k_type -- 'ntk' or 'nngp
   """
 
-  (train_X, train_y), (test_X, test_y) = dataset
-
   t0 = time.time()
-  if len(train_X) > 0:
-    predict_fn = nt.predict.gradient_descent_mse_ensemble(kernel_fn, train_X, train_y)
-    test_y_hat = predict_fn(x_test=test_X, get=k_type, compute_cov=False)
-  else:
-    test_y_hat = np.zeros(shape=(len(test_X), 1))
+  test_y_hat = kernel_predictions(kernel_fn, dataset, k_type, diag_reg=0)
   t = time.time() - t0
+
+  (_, _), (_, test_y) = dataset
 
   lrn = ((test_y * test_y_hat).mean() / (test_y ** 2).mean()).item()
   mse = ((test_y - test_y_hat) ** 2).mean().item()

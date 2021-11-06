@@ -10,7 +10,7 @@ import scipy as sp
 from unit_circle import get_unit_circle_dataset, unit_circle_eigenvalues
 from hypercube import get_hypercube_dataset, hypercube_eigenvalues
 from hypersphere import get_hypersphere_dataset, hypersphere_eigenvalues
-from image_datasets import get_mnist_dataset, get_fashion_mnist_dataset, get_cifar10_dataset_torchvision
+from image_datasets import get_mnist_dataset, get_fashion_mnist_dataset, get_cifar10_dataset
 
 from utils import kernel_predictions, net_predictions
 

@@ -108,7 +108,7 @@ def get_fashion_mnist_dataset(n_train=None, n_test=None, classes=None, subkey=No
     return train_X, train_y, test_X, test_y
 
 
-def get_cifar10_dataset_torchvision(n_train=None, n_test=None, classes=None, subkey=None, flattened=True):
+def get_cifar10_dataset(n_train=None, n_test=None, classes=None, subkey=None, flattened=True):
   train_Xy = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=None)
   test_Xy = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=None)
   train_X = train_Xy.data

@@ -125,15 +125,15 @@ def learning_measure_statistics(net_fns, domain, n, f_terms, g_terms=[], pred_ty
       D, [f_D] = get_hypersphere_dataset(kwargs['d'], [f_terms], n, subkey2)
 
     if domain == 'mnist':
-      ((D, f_D), (X, f_X)) = get_mnist_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
+      D, f_D, X, f_X = get_mnist_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
       g_fns = []
 
     if domain == 'fmnist':
-      ((D, f_D), (X, f_X)) = get_fashion_mnist_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
+      D, f_D, X, f_X = get_fashion_mnist_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
       g_fns = []
 
     if domain == 'cifar10':
-      ((D, f_D), (X, f_X)) = get_cifar10_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
+      D, f_D, X, f_X = get_cifar10_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
       g_fns = []
 
     dataset = ((D, f_D), (X, f_X))

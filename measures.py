@@ -77,7 +77,7 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
   }
 
 
-def learning_measure_statistics(net_fns, domain, n, f_terms, g_terms=[], pred_type='both', n_trials=1, **kwargs):
+def learning_measure_statistics(net_fns, domain, n, f_terms=None, g_terms=[], pred_type='both', n_trials=1, **kwargs):
   """Return experimental learning measures for a network architecture on a particular dataset
 
   net_fns -- a JAX init_fn, apply_fn (uncentered), and kernel_fn

@@ -27,8 +27,12 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
     test_y = np.array(F.one_hot(test_y_labels))
 
     if classes is not None:
-        idxs_tr, idxs_te = (train_y[:,np.array(classes)].sum(axis=1) > 0), (test_y[:,np.array(classes)].sum(axis=1) > 0)
-        train_X, train_y, test_X, test_y = train_X[idxs_tr], train_y[idxs_tr], test_X[idxs_te], test_y[idxs_te]
+        classes = np.array(classes)
+        idxs_tr, idxs_te = (train_y[:,classes].sum(axis=1) > 0), (test_y[:,classes].sum(axis=1) > 0)
+        train_X, train_y, test_X, test_y = train_X[idxs_tr], train_y[idxs_tr,classes], test_X[idxs_te], test_y[idxs_te,classes]
+        if len(classes) == 2:
+            train_y, test_y = train_y[:,:1] * 2 - 1, test_y[:,:1] * 2 - 1
+
 
     # normalize globally
     train_mean = train_X.mean()

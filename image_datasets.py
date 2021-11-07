@@ -20,12 +20,12 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
         test_Xy = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=None)
 
     train_X = train_Xy.data.numpy() if name not in ['cifar10'] else train_Xy.data
-    train_y_labels = base_np.array(train_Xy.targets)
-    train_y = F.one_hot(train_y_labels)
+    # train_y_labels = base_np.array(train_Xy.targets)
+    train_y = F.one_hot(train_Xy.targets)
 
     test_X = test_Xy.data.numpy() if name not in ['cifar10'] else test_Xy.data
-    test_y_labels = base_np.array(test_Xy.targets)
-    test_y = F.one_hot(test_y_labels)
+    # test_y_labels = base_np.array(test_Xy.targets)
+    test_y = F.one_hot(test_Xy.targets)
 
     # num_classes = len(np.unique(train_y_labels))
 

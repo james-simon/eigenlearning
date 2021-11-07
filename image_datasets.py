@@ -1,10 +1,9 @@
 import jax.numpy as np
 from jax import random
 
-import numpy as base_np
-
-import torchvision
+import torch
 import torch.nn.functional as F
+import torchvision
 
 
 def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None, flattened=True):
@@ -20,19 +19,10 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
         test_Xy = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=None)
 
     train_X = train_Xy.data.numpy() if name not in ['cifar10'] else train_Xy.data
-    # train_y_labels = base_np.array(train_Xy.targets)
-    train_y = np.array(F.one_hot(train_Xy.targets))
+    train_y = np.array(F.one_hot(torch.Tensor(train_Xy.targets)))
 
     test_X = test_Xy.data.numpy() if name not in ['cifar10'] else test_Xy.data
-    # test_y_labels = base_np.array(test_Xy.targets)
-    test_y = np.array(F.one_hot(test_Xy.targets))
-
-    # num_classes = len(np.unique(train_y_labels))
-
-    # train_y = base_np.zeros((train_y_labels.size, num_classes))  # One-hot class labels
-    # train_y[base_np.arange(train_y_labels.size), train_y_labels] = 1
-    # test_y = base_np.zeros((test_y_labels.size, num_classes))
-    # test_y[base_np.arange(test_y_labels.size), test_y_labels] = 1
+    test_y = np.array(F.one_hot(torch.Tensor(test_Xy.targets)))
 
     if classes is not None:
         idxs_tr, idxs_te = (train_y[:,np.array(classes)].sum(axis=1) > 0), (test_y[:,np.array(classes)].sum(axis=1) > 0)

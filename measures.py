@@ -14,7 +14,7 @@ from image_datasets import get_image_dataset
 
 from utils import kernel_predictions, net_predictions
 
-def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0):
+def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0, compute_acc=False):
   """Return learning measures for a kernel on a particular dataset
 
   kernel_fn -- a JAX kernel function
@@ -24,23 +24,25 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0):
   """
 
   t0 = time.time()
-  test_y_hat = kernel_predictions(kernel_fn, dataset, k_type, diag_reg=0)
+  test_y_hat = kernel_predictions(kernel_fn, dataset, k_type, diag_reg=diag_reg)
   t = time.time() - t0
 
   (_, _), (_, test_y) = dataset
 
   lrn = ((test_y * test_y_hat).mean() / (test_y ** 2).mean()).item()
   mse = ((test_y - test_y_hat) ** 2).mean().item()
+  acc = (test_y * test_y_hat > 0).mean().item() if compute_acc else None #TODO: support multiclass acc
   g_coeffs = [(g * test_y_hat).mean().item() for g in g_fns]
 
   return {
     'lrn': lrn,
     'mse': mse,
+    'acc': acc,
     'g_coeffs': g_coeffs,
     't': t
   }
 
-def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, print_every=None):
+def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, print_every=None, compute_acc=False):
   """Return learning measures for a network architecture on a particular dataset
 
   net_fns -- a JAX init_fn, apply_fn (uncentered), and kernel_fn (unused here)
@@ -64,12 +66,14 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
 
   lrn = ((test_y*test_y_hat).mean()/(test_y**2).mean()).item()
   mse = ((test_y - test_y_hat)**2).mean().item()
+  acc = (test_y * test_y_hat > 0).mean().item() if compute_acc else None #TODO: support multiclass acc
   g_coeffs = [(g*test_y_hat).mean().item() for g in g_fns]
   train_mse = ((train_y - train_y_hat)**2).mean().item()
 
   return {
     'lrn': lrn,
     'mse': mse,
+    'acc': acc,
     'g_coeffs': g_coeffs,
     'train_mse': train_mse,
     'epcs': epcs,
@@ -112,21 +116,25 @@ def learning_measure_statistics(net_fns, domain, n, f_terms=None, g_terms=[], pr
       g_fns = targets[1:]
       _, D, [f_D] = get_unit_circle_dataset(kwargs['M'], [f_terms], full=False, n=n, subkey=subkey)
 
-    if domain == 'hypercube':
+    elif domain == 'hypercube':
       X, targets = get_hypercube_dataset(kwargs['d'], [f_terms] + g_terms)
       f_X = targets[0]
       g_fns = targets[1:]
       D, [f_D] = get_hypercube_dataset(kwargs['d'], [f_terms], full=False, n=n, subkey=subkey)
 
-    if domain == 'hypersphere':
+    elif domain == 'hypersphere':
       X, targets = get_hypersphere_dataset(kwargs['d'], [f_terms] + g_terms, kwargs['n_test'], subkey)
       f_X = targets[0]
       g_fns = targets[1:]
       D, [f_D] = get_hypersphere_dataset(kwargs['d'], [f_terms], n, subkey2)
 
-    if domain in ['mnist', 'fmnist', 'cifar10']:
+    elif domain in ['mnist', 'fmnist', 'cifar10']:
       D, f_D, X, f_X = get_image_dataset(domain, n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
       g_fns = []
+
+    else:
+      print(f'invalid domain {domain}')
+      assert False
 
     # if domain == 'mnist':
     #   D, f_D, X, f_X = get_mnist_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
@@ -145,7 +153,9 @@ def learning_measure_statistics(net_fns, domain, n, f_terms=None, g_terms=[], pr
     measures_k = kernel_measures(net_fns[2],
                                  dataset,
                                  g_fns=g_fns,
-                                 k_type='ntk') if pred_type in ['kernel', 'both'] else {}
+                                 k_type='ntk',
+                                 compute_acc=kwargs['compute_acc'] if 'compute_acc' in kwargs else False
+                                 ) if pred_type in ['kernel', 'both'] else {}
 
     measures_n = net_measures(net_fns,
                               dataset,
@@ -154,7 +164,8 @@ def learning_measure_statistics(net_fns, domain, n, f_terms=None, g_terms=[], pr
                               kwargs['lr'],
                               subkey,
                               stop_mse=kwargs['stop_mse'] if 'stop_mse' in kwargs else 0,
-                              print_every=kwargs['print_every'] if 'print_every' in kwargs else None
+                              print_every=kwargs['print_every'] if 'print_every' in kwargs else None,
+                              compute_acc=kwargs['compute_acc'] if 'compute_acc' in kwargs else False
                               ) if pred_type in ['net', 'both'] else {}
 
     for m in measures_k:

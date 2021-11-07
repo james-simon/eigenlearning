@@ -15,12 +15,12 @@ def select_subset(X, y, n, subkey=None):
   indices = random.choice(subkey, indices, shape=[n], replace=False)
   return X[indices], y[indices]
 
-def select_classes(X, y, y_labels, classes):
-    idxs = base_np.isin(y_labels, np.array(classes))
-    X, y = X[idxs], y[idxs]
-    if len(classes) == 2:
-        y = y[:,:1] * 2 - 1
-    return X, y
+# def select_classes(X, y, y_labels, classes):
+#     idxs = base_np.isin(y_labels, np.array(classes))
+#     X, y = X[idxs], y[idxs]
+#     if len(classes) == 2:
+#         y = y[:,:1] * 2 - 1
+#     return X, y
 
 def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None, flattened=True):
 
@@ -47,8 +47,12 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
     test_y[base_np.arange(test_y_labels.size), test_y_labels] = 1
 
     if classes is not None:
-        train_X, train_y = select_classes(train_X, train_y, train_y_labels, classes)
-        test_X, test_y = select_classes(test_X, test_y, train_y_labels, classes)
+        idxs_tr, idxs_te = (train_y[:,np.array(classes)].sum(axis=1) > 0), (test_y[:,np.array(classes)].sum(axis=1) > 0)
+        train_X, train_y, test_X, test_y = train_X[idxs_tr], train_y[idxs_tr], test_X[idxs_te], test_y[idxs_te]
+
+    # if classes is not None:
+    #     train_X, train_y = select_classes(train_X, train_y, train_y_labels, classes)
+    #     test_X, test_y = select_classes(test_X, test_y, test_y_labels, classes)
 
     # normalize globally
     train_mean = train_X.mean()
@@ -60,15 +64,18 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
     train_X, train_y, test_X, test_y = np.array(train_X), np.array(train_y), np.array(test_X), np.array(test_y)
 
     if n_train is not None:
-        train_X, train_y = select_subset(train_X, train_y, n_train, subkey)
+        idxs = np.arange(0, n_train) if subkey is None else random.choice(subkey, np.arange(0, len(train_X)), shape=[n_train], replace=False)
+        train_X, train_y = train_X[idxs], train_y[idxs]
     if n_test is not None:
-        test_X, test_y = select_subset(test_X, test_y, n_test, subkey)
+        idxs = np.arange(0, n_test) if subkey is None else random.choice(subkey, np.arange(0, len(test_X)), shape=[n_test], replace=False)
+        test_X, test_y = test_X[idxs], test_y[idxs]
 
     if name in ['cifar10']:
         train_X, test_X = np.transpose(train_X, (0, 3, 1, 2)), np.transpose(test_X, (0, 3, 1, 2))
 
     if flattened:
         train_X, test_X = train_X.reshape((len(train_X), -1)), test_X.reshape((len(test_X), -1))
+
     # else:
     #     if name in ['mnist', 'fmnist']:
     #         train_X, test_X = train_X.reshape((-1, 28, 28)), test_X.reshape((-1, 28, 28))

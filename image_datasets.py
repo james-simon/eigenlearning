@@ -42,9 +42,12 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
     if n_train is not None:
         idxs = np.arange(0, n_train) if subkey is None else random.choice(subkey, np.arange(0, len(train_X)), shape=[n_train], replace=False)
         train_X, train_y = train_X[idxs], train_y[idxs]
+        assert len(train_X) == n_train
+
     if n_test is not None:
         idxs = np.arange(0, n_test) if subkey is None else random.choice(subkey, np.arange(0, len(test_X)), shape=[n_test], replace=False)
         test_X, test_y = test_X[idxs], test_y[idxs]
+        assert len(test_X) == n_test
 
     if name in ['cifar10']:
         train_X, test_X = np.transpose(train_X, (0, 3, 1, 2)), np.transpose(test_X, (0, 3, 1, 2))

@@ -10,7 +10,7 @@ import scipy as sp
 from unit_circle import get_unit_circle_dataset, unit_circle_eigenvalues
 from hypercube import get_hypercube_dataset, hypercube_eigenvalues
 from hypersphere import get_hypersphere_dataset, hypersphere_eigenvalues
-from image_datasets import get_mnist_dataset, get_fashion_mnist_dataset, get_cifar10_dataset
+from image_datasets import get_image_dataset
 
 from utils import kernel_predictions, net_predictions
 
@@ -124,17 +124,21 @@ def learning_measure_statistics(net_fns, domain, n, f_terms, g_terms=[], pred_ty
       g_fns = targets[1:]
       D, [f_D] = get_hypersphere_dataset(kwargs['d'], [f_terms], n, subkey2)
 
-    if domain == 'mnist':
-      D, f_D, X, f_X = get_mnist_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
+    if domain in ['mnist', 'fmnist', 'cifar10']:
+      D, f_D, X, f_X = get_image_dataset(domain, n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
       g_fns = []
 
-    if domain == 'fmnist':
-      D, f_D, X, f_X = get_fashion_mnist_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
-      g_fns = []
-
-    if domain == 'cifar10':
-      D, f_D, X, f_X = get_cifar10_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
-      g_fns = []
+    # if domain == 'mnist':
+    #   D, f_D, X, f_X = get_mnist_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
+    #   g_fns = []
+    #
+    # if domain == 'fmnist':
+    #   D, f_D, X, f_X = get_fashion_mnist_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
+    #   g_fns = []
+    #
+    # if domain == 'cifar10':
+    #   D, f_D, X, f_X = get_cifar10_dataset(n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
+    #   g_fns = []
 
     dataset = ((D, f_D), (X, f_X))
 

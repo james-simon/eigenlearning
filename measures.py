@@ -31,15 +31,23 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0, comp
 
   lrn = ((test_y * test_y_hat).mean() / (test_y ** 2).mean()).item()
   mse = ((test_y - test_y_hat) ** 2).mean().item()
+  l1_loss = np.abs(test_y - test_y_hat).mean().item()
   acc = (test_y * test_y_hat > 0).mean().item() if compute_acc else None #TODO: support multiclass acc
   g_coeffs = [(g * test_y_hat).mean().item() for g in g_fns]
+
+  # compute the bound in Arora et al. (https://arxiv.org/abs/1901.08584)
+  (train_X, train_y), (test_X, test_y) = dataset
+  K_dd = kernel_fn(train_X, train_X, get=k_type)
+  arora_et_al_bound = np.sqrt(train_y.T @ np.linalg.inv(K_dd) @ train_y / len(train_y))
 
   return {
     'lrn': lrn,
     'mse': mse,
+    'l1_loss': l1_loss,
     'acc': acc,
     'g_coeffs': g_coeffs,
     't': t
+    'arora_et_al_bound' : arora_et_al_bound
   }
 
 def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, print_every=None, compute_acc=False):
@@ -66,6 +74,7 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
 
   lrn = ((test_y*test_y_hat).mean()/(test_y**2).mean()).item()
   mse = ((test_y - test_y_hat)**2).mean().item()
+  l1_loss = np.abs(test_y - test_y_hat).mean().item()
   acc = (test_y * test_y_hat > 0).mean().item() if compute_acc else None #TODO: support multiclass acc
   g_coeffs = [(g*test_y_hat).mean().item() for g in g_fns]
   train_mse = ((train_y - train_y_hat)**2).mean().item()
@@ -73,6 +82,7 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
   return {
     'lrn': lrn,
     'mse': mse,
+    'l1_loss': l1_loss,
     'acc': acc,
     'g_coeffs': g_coeffs,
     'train_mse': train_mse,

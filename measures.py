@@ -191,7 +191,6 @@ def learning_measure_statistics(net_fns, domain, n, f_terms=None, g_terms=[], pr
   for ptype in ['kernel', 'net']:
     for m in measures[ptype]:
       if m is not 'g_coeffs':
-        print(ptype, m, measures[ptype][m])
         vals = np.array(measures[ptype][m])
         measures[ptype][m] = (vals.mean().item(), vals.std(ddof=1).item())
       else:

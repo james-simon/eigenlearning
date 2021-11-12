@@ -47,7 +47,7 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0, comp
     'acc': acc,
     'g_coeffs': g_coeffs,
     't': t,
-    'arora_et_al_bound' : arora_et_al_bound
+    'arora_et_al_bound': arora_et_al_bound
   }
 
 def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, print_every=None, compute_acc=False):

@@ -46,7 +46,7 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0, comp
     'l1_loss': l1_loss,
     'acc': acc,
     'g_coeffs': g_coeffs,
-    't': t
+    't': t,
     'arora_et_al_bound' : arora_et_al_bound
   }
 

@@ -39,7 +39,7 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0, comp
   (train_X, train_y), (test_X, test_y) = dataset
   train_X_normed = train_X / ((train_X**2).sum(axis=1)**.5)[:,None]
   K_dd = kernel_fn(train_X_normed, train_X_normed, get=k_type)
-  arora_et_al_bound = np.sqrt(train_y.T @ np.linalg.inv(K_dd) @ train_y / len(train_y)).item()
+  arora_et_al_bound = np.sqrt(train_y.T @ np.linalg.inv(K_dd) @ train_y / len(train_y)).diagonal().mean().item()
 
   return {
     'lrn': lrn,

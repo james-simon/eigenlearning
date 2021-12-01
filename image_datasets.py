@@ -53,6 +53,11 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
         test_X, test_y = test_X[idxs], test_y[idxs]
         assert len(test_X) == n_test
 
+    # add a dummy channel dimension to MNIST and FMNIST
+    if name in ['mnist', 'fmnist']:
+        train_X, test_X = train_X[:,None,:,:], test_X[:,None,:,:]
+
+    # swap dimensions for CIFAR10 so they're (n, ch, x, y)
     if name in ['cifar10']:
         train_X, test_X = np.transpose(train_X, (0, 3, 1, 2)), np.transpose(test_X, (0, 3, 1, 2))
 

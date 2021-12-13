@@ -55,11 +55,11 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
 
     # add a dummy channel dimension to MNIST and FMNIST
     if name in ['mnist', 'fmnist']:
-        train_X, test_X = train_X[:,None,:,:], test_X[:,None,:,:]
+        train_X, test_X = train_X[:,:,:,None], test_X[:,:,:,None]
 
-    # swap dimensions for CIFAR10 so they're (n, ch, x, y)
-    if name in ['cifar10']:
-        train_X, test_X = np.transpose(train_X, (0, 3, 1, 2)), np.transpose(test_X, (0, 3, 1, 2))
+    # # swap dimensions for CIFAR10 so they're (n, ch, x, y) <- dropping this for now
+    # if name in ['cifar10']:
+    #     train_X, test_X = np.transpose(train_X, (0, 3, 1, 2)), np.transpose(test_X, (0, 3, 1, 2))
 
     if flattened:
         train_X, test_X = train_X.reshape((len(train_X), -1)), test_X.reshape((len(test_X), -1))

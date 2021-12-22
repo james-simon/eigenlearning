@@ -6,7 +6,7 @@ from jax.experimental import optimizers
 import neural_tangents as nt
 from neural_tangents import stax
 
-def get_net_fns(width, d_out, n_hidden_layers=1, W_std=1.4, b_std=.1, phi='relu'):
+def get_net_fns(width, d_out, n_hidden_layers=1, W_std=1.4, b_std=.1, phi='relu', phi_deg=40):
   """Generate JAX functions for a fully-connected network given hyperparameters.
 
   width -- the width of the hidden layers
@@ -15,6 +15,7 @@ def get_net_fns(width, d_out, n_hidden_layers=1, W_std=1.4, b_std=.1, phi='relu'
   W_std -- the initialization standard deviation of the trainable weight parameters
   b_std -- the initialization standard deviation of the trainable bias parameters
   phi -- the activation function; should be either 'relu', 'erf', or a function
+  deg -- the approximation degree for computing the kernel if phi's an arbitrary function
   """
   if phi == 'relu':
     layers = [stax.Dense(width, W_std=W_std, b_std=b_std), stax.Relu()] * n_hidden_layers
@@ -23,7 +24,7 @@ def get_net_fns(width, d_out, n_hidden_layers=1, W_std=1.4, b_std=.1, phi='relu'
     layers = [stax.Dense(width, W_std=W_std, b_std=b_std), stax.Erf()] * n_hidden_layers
     layers += [stax.Dense(d_out, W_std=1, b_std=0)]
   else:
-    layers = [stax.Dense(width, W_std=W_std, b_std=b_std), stax.ElementwiseNumerical(fn=phi, deg=40)] * n_hidden_layers
+    layers = [stax.Dense(width, W_std=W_std, b_std=b_std), stax.ElementwiseNumerical(fn=phi, deg=phi_deg)] * n_hidden_layers
     layers += [stax.Dense(d_out, W_std=1, b_std=0)]
 
   init_fn, apply_fn_uncentered, kernel_fn = stax.serial(*layers)

@@ -32,8 +32,10 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0, comp
   lrn = ((test_y * test_y_hat).mean() / (test_y ** 2).mean()).item()
   mse = ((test_y - test_y_hat) ** 2).mean().item()
   l1_loss = np.abs(test_y - test_y_hat).mean().item()
-  acc = (test_y * test_y_hat > 0).mean().item() if compute_acc else np.nan #TODO: support multiclass acc
   g_coeffs = [(g * test_y_hat).mean().item() for g in g_fns]
+  acc = (
+    (test_y * test_y_hat > 0).mean().item() if test_y.shape[1] == 1 else (np.argmax(test_y, axis=1) == np.argmax(test_y_hat, axis=1)).mean()
+  ) if compute_acc else np.nan
 
   # compute the bound in Arora et al. (https://arxiv.org/abs/1901.08584)
   (train_X, train_y), (test_X, test_y) = dataset

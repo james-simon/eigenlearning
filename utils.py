@@ -62,7 +62,7 @@ def kernel_predictions(kernel_fn, dataset, k_type='ntk', diag_reg=0):
 
   return test_y_hat
 
-def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot_es=[], print_every=None):
+def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot_es=[], print_every=None, compute_acc=False):
   """Train a neural network and return its final predictions.
 
   net_fns -- a JAX init_fn, apply_fn (uncentered), and kernel_fn (unused here)
@@ -98,7 +98,7 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
   snapshots = {}
 
   if print_every is not None:
-    print('Epoch\tTrain Loss\tTest Loss')
+    print('Epoch\t\tTrain Loss\tTest Loss' + ('\t\tTrain Acc\tTest Acc' if compute_acc else ''))
   for i in range(n_epochs):
     params = get_params(state)
     state = opt_apply(i, grad_loss(params, train_X, train_y), state)
@@ -108,8 +108,16 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
       break
 
     if print_every is not None and i % print_every == 0:
-      test_loss = loss(apply_fn(params, test_X), test_y)
-      print('{}\t{:.8f}\t{:.8f}'.format(i, train_loss, test_loss))
+      train_y_hat, test_y_hat = apply_fn(params, train_X), apply_fn(params, test_X)
+      test_loss = loss(test_y_hat, test_y)
+      if not compute_acc:
+        print('{}\t\t{:.8f}\t{:.8f}'.format(i, train_loss, test_loss))
+      else:
+        train_acc = (train_y * train_y_hat > 0).mean().item() if test_y.shape[1] == 1 else (
+                    np.argmax(train_y, axis=1) == np.argmax(train_y_hat, axis=1)).mean()
+        test_acc = (test_y * test_y_hat > 0).mean().item() if test_y.shape[1] == 1 else (
+                    np.argmax(test_y, axis=1) == np.argmax(test_y_hat, axis=1)).mean()
+        print('{}\t\t{:.8f}\t{:.8f}\t\t{:.8f}\t{:.8f}'.format(i, train_loss, test_loss, train_acc, test_acc))
 
     if i in snapshot_es:
       train_preds = apply_fn(get_params(state), train_X).tolist()

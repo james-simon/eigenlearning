@@ -68,7 +68,7 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
   (train_X, train_y), (test_X, test_y) = dataset
 
   t0 = time.time()
-  net_results = net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=stop_mse, print_every=print_every)
+  net_results = net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=stop_mse, print_every=print_every, compute_acc=compute_acc)
   t = time.time() - t0
 
   test_y_hat = net_results['test_preds']

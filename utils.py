@@ -6,6 +6,28 @@ from jax.experimental import optimizers
 import neural_tangents as nt
 from neural_tangents import stax
 
+def lrn(y, y_hat):
+  return ((y * y_hat).mean() / (y ** 2).mean()).item()
+
+def mse(y, y_hat):
+  if len(y.shape) == 1:
+    return ((y - y_hat) ** 2).mean().item()
+  else:
+    return ((y - y_hat) ** 2).sum(axis=1).mean().item()
+
+def l1_loss(y, y_hat):
+  if len(y.shape) == 1:
+    return np.abs(y - y_hat).mean().item()
+  else:
+    return np.abs(y - y_hat).sum(axis=1).mean().item()
+
+def acc(y, y_hat):
+  if len(y.shape) == 1 or y.shape[1] == 1:
+    return (y * y_hat > 0).mean().item()
+  else:
+    return (np.argmax(y, axis=1) == np.argmax(y_hat, axis=1)).mean()
+
+
 def get_net_fns(width, d_out, n_hidden_layers=1, W_std=1.4, b_std=.1, phi='relu', phi_deg=40):
   """Generate JAX functions for a fully-connected network given hyperparameters.
 
@@ -92,7 +114,7 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
   opt_init, opt_apply, get_params = optimizers.sgd(lr)
   state = opt_init(initial_params)
 
-  loss = lambda y, y_hat: np.mean((y - y_hat) ** 2)
+  loss = mse
   grad_loss = jit(grad(lambda params, x, y: loss(apply_fn(params, x), y)))
 
   snapshots = {}
@@ -113,10 +135,8 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
       if not compute_acc:
         print('{}\t\t{:.8f}\t{:.8f}'.format(i, train_loss, test_loss))
       else:
-        train_acc = (train_y * train_y_hat > 0).mean().item() if test_y.shape[1] == 1 else (
-                    np.argmax(train_y, axis=1) == np.argmax(train_y_hat, axis=1)).mean()
-        test_acc = (test_y * test_y_hat > 0).mean().item() if test_y.shape[1] == 1 else (
-                    np.argmax(test_y, axis=1) == np.argmax(test_y_hat, axis=1)).mean()
+        train_acc = acc(train_y, train_y_hat)
+        test_acc = acc(test_y, test_y_hat)
         print('{}\t\t{:.8f}\t{:.8f}\t\t{:.8f}\t{:.8f}'.format(i, train_loss, test_loss, train_acc, test_acc))
 
     if i in snapshot_es:

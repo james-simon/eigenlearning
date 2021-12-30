@@ -12,6 +12,7 @@ from hypercube import get_hypercube_dataset, hypercube_eigenvalues
 from hypersphere import get_hypersphere_dataset, hypersphere_eigenvalues
 from image_datasets import get_image_dataset
 
+import utils
 from utils import kernel_predictions, net_predictions
 
 def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0, compute_acc=False):
@@ -29,13 +30,20 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0, comp
 
   (_, _), (_, test_y) = dataset
 
-  lrn = ((test_y * test_y_hat).mean() / (test_y ** 2).mean()).item()
-  mse = ((test_y - test_y_hat) ** 2).mean().item()
-  l1_loss = np.abs(test_y - test_y_hat).mean().item()
+  # lrn = ((test_y * test_y_hat).mean() / (test_y ** 2).mean()).item()
+  # mse = ((test_y - test_y_hat) ** 2).mean().item()
+  # l1_loss = np.abs(test_y - test_y_hat).mean().item()
+
+  lrn = utils.lrn(test_y, test_y_hat)
+  mse = utils.mse(test_y, test_y_hat)
+  l1_loss = utils.l1_loss(test_y, test_y_hat)
+  acc = utils.acc(test_y, test_y_hat)
+
   g_coeffs = [(g * test_y_hat).mean().item() for g in g_fns]
-  acc = (
-    (test_y * test_y_hat > 0).mean().item() if test_y.shape[1] == 1 else (np.argmax(test_y, axis=1) == np.argmax(test_y_hat, axis=1)).mean()
-  ) if compute_acc else np.nan
+
+  # acc = (
+  #   (test_y * test_y_hat > 0).mean().item() if test_y.shape[1] == 1 else (np.argmax(test_y, axis=1) == np.argmax(test_y_hat, axis=1)).mean()
+  # ) if compute_acc else np.nan
 
   # compute the bound in Arora et al. (https://arxiv.org/abs/1901.08584)
   (train_X, train_y), (test_X, test_y) = dataset
@@ -75,14 +83,21 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
   train_y_hat = net_results['train_preds']
   epcs = net_results['epcs']
 
-  lrn = ((test_y*test_y_hat).mean()/(test_y**2).mean()).item()
-  mse = ((test_y - test_y_hat)**2).mean().item()
-  l1_loss = np.abs(test_y - test_y_hat).mean().item()
+  # lrn = ((test_y*test_y_hat).mean()/(test_y**2).mean()).item()
+  # mse = ((test_y - test_y_hat)**2).mean().item()
+  # l1_loss = np.abs(test_y - test_y_hat).mean().item()
+  # acc = (
+  #   (test_y * test_y_hat > 0).mean().item() if test_y.shape[1] == 1 else (np.argmax(test_y, axis=1) == np.argmax(test_y_hat, axis=1)).mean()
+  # ) if compute_acc else np.nan
+  # train_mse = ((train_y - train_y_hat)**2).mean().item()
+
+  lrn = utils.lrn(test_y, test_y_hat)
+  mse = utils.mse(test_y, test_y_hat)
+  l1_loss = utils.l1_loss(test_y, test_y_hat)
+  acc = utils.acc(test_y, test_y_hat)
+  train_mse = utils.mse(train_y, train_y_hat)
+
   g_coeffs = [(g*test_y_hat).mean().item() for g in g_fns]
-  train_mse = ((train_y - train_y_hat)**2).mean().item()
-  acc = (
-    (test_y * test_y_hat > 0).mean().item() if test_y.shape[1] == 1 else (np.argmax(test_y, axis=1) == np.argmax(test_y_hat, axis=1)).mean()
-  ) if compute_acc else np.nan
 
   return {
     'lrn': lrn,

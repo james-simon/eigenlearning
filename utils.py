@@ -114,7 +114,9 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
   opt_init, opt_apply, get_params = optimizers.sgd(lr)
   state = opt_init(initial_params)
 
-  loss = mse
+  # just mse but without the .item()
+  loss = lambda y, y_hat: ((y - y_hat) ** 2).sum(axis=1).mean()
+
   grad_loss = jit(grad(lambda params, x, y: loss(apply_fn(params, x), y)))
 
   snapshots = {}

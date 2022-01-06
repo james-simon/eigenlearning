@@ -131,8 +131,8 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
     else:
       for idx_1 in range(0, len(train_X), batch_size):
         idx_2 = min(idx_1 + batch_size, len(train_X))
-        batch_weight = (idx_2 - idx_1) / batch_size
-        state = opt_apply(i, batch_weight * grad_loss(params, train_X[idx_1 : idx_2], train_y[idx_1 : idx_2]), state)
+        # batch_weight = (idx_2 - idx_1) / batch_size
+        state = opt_apply(i, grad_loss(params, train_X[idx_1 : idx_2], train_y[idx_1 : idx_2]), state)
 
     # check whether train loss is sufficiently low every 10 epochs
     if i % 10 == 0:

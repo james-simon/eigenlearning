@@ -61,7 +61,7 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0, comp
     'arora_et_al_bound': arora_et_al_bound
   }
 
-def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, print_every=None, compute_acc=False):
+def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, print_every=None, compute_acc=False, batch_size=None):
   """Return learning measures for a network architecture on a particular dataset
 
   net_fns -- a JAX init_fn, apply_fn (uncentered), and kernel_fn (unused here)
@@ -76,7 +76,7 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
   (train_X, train_y), (test_X, test_y) = dataset
 
   t0 = time.time()
-  net_results = net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=stop_mse, print_every=print_every, compute_acc=compute_acc)
+  net_results = net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=stop_mse, print_every=print_every, compute_acc=compute_acc, batch_size=batch_size)
   t = time.time() - t0
 
   test_y_hat = net_results['test_preds']
@@ -199,7 +199,8 @@ def learning_measure_statistics(net_fns, domain, n, f_terms=None, g_terms=[], pr
                               subkey,
                               stop_mse=kwargs['stop_mse'] if 'stop_mse' in kwargs else 0,
                               print_every=kwargs['print_every'] if 'print_every' in kwargs else None,
-                              compute_acc=kwargs['compute_acc'] if 'compute_acc' in kwargs else False
+                              compute_acc=kwargs['compute_acc'] if 'compute_acc' in kwargs else False,
+                              batch_size=kwargs['batch_size'] if 'batch_size' in kwargs else None
                               ) if pred_type in ['net', 'both'] else {}
 
     for m in measures_k:

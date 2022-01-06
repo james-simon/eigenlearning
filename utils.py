@@ -84,7 +84,7 @@ def kernel_predictions(kernel_fn, dataset, k_type='ntk', diag_reg=0):
 
   return test_y_hat
 
-def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot_es=[], print_every=None, compute_acc=False):
+def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot_es=[], print_every=None, compute_acc=False, batch_size=None):
   """Train a neural network and return its final predictions.
 
   net_fns -- a JAX init_fn, apply_fn (uncentered), and kernel_fn (unused here)
@@ -125,7 +125,14 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
     print('Epoch\t\tTrain Loss\tTest Loss' + ('\t\tTrain Acc\tTest Acc' if compute_acc else ''))
   for i in range(n_epochs):
     params = get_params(state)
-    state = opt_apply(i, grad_loss(params, train_X, train_y), state)
+
+    if batch_size is None:
+      state = opt_apply(i, grad_loss(params, train_X, train_y[idx_1 : idx_2]), state)
+    else:
+      for idx_1 in range(0, len(train_X), batch_size):
+        idx_2 = min(idx_1 + batch_size, len(train_X))
+        batch_weight = (idx_2 - idx_1) / batch_size
+        state = opt_apply(i, batch_weight * grad_loss(params, train_X[idx_1 : idx_2], train_y[idx_1 : idx_2]), state)
 
     # check whether train loss is sufficiently low every 10 epochs
     if i % 10 == 0:

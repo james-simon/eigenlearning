@@ -128,7 +128,7 @@ def learning_measure_statistics(net_fns, domain, n, f_terms=None, g_terms=[], pr
   else:
     key = np.array([0, 17], dtype='uint32')
 
-  assert domain in ['circle', 'hypercube', 'hypersphere', 'mnist', 'fmnist', 'cifar10', 'cifar100']
+  assert domain in ['circle', 'hypercube', 'hypersphere', 'mnist', 'mnist normalized', 'fmnist', 'fmnist normalized', 'cifar10', 'cifar10 normalized', 'cifar100', 'cifar100 normalized']
   if pred_type in ['net', 'both']:
     assert ('n_epochs' in kwargs) and ('lr' in kwargs)
 

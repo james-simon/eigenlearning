@@ -127,13 +127,15 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
     params = get_params(state)
     state = opt_apply(i, grad_loss(params, train_X, train_y), state)
 
-    train_loss = loss(apply_fn(params, train_X), train_y)
-    if train_loss < stop_mse:
-      break
+    # check whether train loss is sufficiently low every 10 epochs
+    if i % 10 == 0:
+      train_loss = loss(apply_fn(params, train_X), train_y)
+      if train_loss < stop_mse:
+        break
 
     if print_every is not None and i % print_every == 0:
       train_y_hat, test_y_hat = apply_fn(params, train_X), apply_fn(params, test_X)
-      test_loss = loss(test_y_hat, test_y)
+      train_loss, test_loss = loss(train_y_hat, train_y), loss(test_y_hat, test_y)
       if not compute_acc:
         print('{}\t\t{:.8f}\t{:.8f}'.format(i, train_loss, test_loss))
       else:

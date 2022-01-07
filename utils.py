@@ -127,7 +127,7 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
     params = get_params(state)
 
     if batch_size is None:
-      state = opt_apply(i, grad_loss(params, train_X, train_y[idx_1 : idx_2]), state)
+      state = opt_apply(i, grad_loss(params, train_X, train_y), state)
     else:
       for idx_1 in range(0, len(train_X), batch_size):
         idx_2 = min(idx_1 + batch_size, len(train_X))

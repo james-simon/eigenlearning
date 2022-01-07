@@ -13,7 +13,7 @@ def mse(y, y_hat, item=True):
   if len(y.shape) == 1:
     output = ((y - y_hat) ** 2).mean()
   else:
-    output =  ((y - y_hat) ** 2).sum(axis=1).mean()
+    output = ((y - y_hat) ** 2).sum(axis=1).mean()
   return output.item() if item else output
 
 def l1_loss(y, y_hat):
@@ -131,7 +131,7 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
   if loss_fn == 'xe':
     loss = lambda y, y_hat: xe(y, y_hat, item=False)
 
-  grad_loss = jit(grad(lambda params, x, y: loss(apply_fn(params, x), y)))
+  grad_loss = jit(grad(lambda params, x, y: loss(y, apply_fn(params, x))))
 
   snapshots = {}
 
@@ -150,13 +150,13 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
 
     # check whether train loss is sufficiently low every 10 epochs
     if i % 10 == 0:
-      train_loss = loss(apply_fn(params, train_X), train_y)
+      train_loss = loss(train_y, apply_fn(params, train_X))
       if train_loss < stop_mse:
         break
 
     if print_every is not None and i % print_every == 0:
       train_y_hat, test_y_hat = apply_fn(params, train_X), apply_fn(params, test_X)
-      train_loss, test_loss = loss(train_y_hat, train_y), loss(test_y_hat, test_y)
+      train_loss, test_loss = loss(train_y, train_y_hat), loss(test_y, test_y_hat)
       if not compute_acc:
         print('{}\t\t{:.8f}\t{:.8f}'.format(i, train_loss, test_loss))
       else:

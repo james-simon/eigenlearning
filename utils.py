@@ -9,11 +9,12 @@ from neural_tangents import stax
 def lrn(y, y_hat):
   return ((y * y_hat).mean() / (y ** 2).mean()).item()
 
-def mse(y, y_hat):
+def mse(y, y_hat, item=True):
   if len(y.shape) == 1:
-    return ((y - y_hat) ** 2).mean().item()
+    output = ((y - y_hat) ** 2).mean()
   else:
-    return ((y - y_hat) ** 2).sum(axis=1).mean().item()
+    output =  ((y - y_hat) ** 2).sum(axis=1).mean()
+  return output.item() if item else output
 
 def l1_loss(y, y_hat):
   if len(y.shape) == 1:
@@ -25,8 +26,18 @@ def acc(y, y_hat):
   if len(y.shape) == 1 or y.shape[1] == 1:
     return (y * y_hat > 0).mean().item()
   else:
-    return (np.argmax(y, axis=1) == np.argmax(y_hat, axis=1)).mean()
+    return (np.argmax(y, axis=1) == np.argmax(y_hat, axis=1)).mean().item()
 
+# assumes y_hat are logits
+def xe(y, y_hat, item=True):
+  if len(y.shape) == 1 or y.shape[1] == 1:
+    output = -np.log(sigmoid(y * y_hat)).mean().item()
+  else:
+    output = -(np.log(jax.nn.softmax(y_hat)) * y).sum(axis=1).mean().item()
+  return output.item() if item else output
+
+def sigmoid(x):
+  return 1 / (1 + np.exp(-x))
 
 def get_net_fns(width, d_out, n_hidden_layers=1, W_std=1.4, b_std=.1, phi='relu', phi_deg=40):
   """Generate JAX functions for a fully-connected network given hyperparameters.
@@ -84,7 +95,7 @@ def kernel_predictions(kernel_fn, dataset, k_type='ntk', diag_reg=0):
 
   return test_y_hat
 
-def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot_es=[], print_every=None, compute_acc=False, batch_size=None):
+def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot_es=[], print_every=None, compute_acc=False, batch_size=None, loss_fn='mse'):
   """Train a neural network and return its final predictions.
 
   net_fns -- a JAX init_fn, apply_fn (uncentered), and kernel_fn (unused here)
@@ -114,8 +125,11 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
   opt_init, opt_apply, get_params = optimizers.sgd(lr)
   state = opt_init(initial_params)
 
-  # just mse but without the .item()
-  loss = lambda y, y_hat: ((y - y_hat) ** 2).sum(axis=1).mean()
+  assert loss_fn in ['mse', 'xe']
+  if loss_fn == 'mse':
+    loss = lambda y, y_hat: mse(y, y_hat, item=False)
+  if loss_fn == 'xe':
+    loss = lambda y, y_hat: xe(y, y_hat, item=False)
 
   grad_loss = jit(grad(lambda params, x, y: loss(apply_fn(params, x), y)))
 

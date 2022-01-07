@@ -31,9 +31,9 @@ def acc(y, y_hat):
 # assumes y_hat are logits
 def xe(y, y_hat, item=True):
   if len(y.shape) == 1 or y.shape[1] == 1:
-    output = -np.log(sigmoid(y * y_hat)).mean().item()
+    output = -np.log(sigmoid(y * y_hat)).mean()
   else:
-    output = -(np.log(jax.nn.softmax(y_hat)) * y).sum(axis=1).mean().item()
+    output = -(np.log(jax.nn.softmax(y_hat)) * y).sum(axis=1).mean()
   return output.item() if item else output
 
 def sigmoid(x):

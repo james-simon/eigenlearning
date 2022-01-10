@@ -96,6 +96,7 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
   l1_loss = utils.l1_loss(test_y, test_y_hat)
   acc = utils.acc(test_y, test_y_hat)
   train_mse = utils.mse(train_y, train_y_hat)
+  train_acc = utils.acc(train_y, train_y_hat)
 
   g_coeffs = [(g*test_y_hat).mean().item() for g in g_fns]
 
@@ -106,6 +107,7 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
     'acc': acc,
     'g_coeffs': g_coeffs,
     'train_mse': train_mse,
+    'train_acc': train_acc,
     'epcs': epcs,
     't': t
   }

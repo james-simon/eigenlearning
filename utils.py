@@ -39,6 +39,19 @@ def xe(y, y_hat, item=True):
 def sigmoid(x):
   return 1 / (1 + np.exp(-x))
 
+def count_params(params, count_biases=True):
+  """Count the total number of parameters in a stax FCN.
+
+  params -- the list of parameter tensors
+  count_biases -- if False, count only weights
+  """
+  total = 0
+  for layer in params:
+    if len(layer) == 0:
+      continue
+    total += layer[0].size + (layer[1].size if count_biases else 0)
+  return total
+
 def get_net_fns(width, d_out, n_hidden_layers=1, W_std=1.4, b_std=.1, phi='relu', phi_deg=40):
   """Generate JAX functions for a fully-connected network given hyperparameters.
 

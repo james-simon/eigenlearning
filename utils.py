@@ -39,17 +39,35 @@ def xe(y, y_hat, item=True):
 def sigmoid(x):
   return 1 / (1 + np.exp(-x))
 
-def count_params(params, count_biases=True):
+def dictionary_mean(Ds):
+  """Return the mean of the numeric entries in a list of dictionaries with the same keys.
+
+  Ds -- a list of dictionaries
+  """
+  output = {key: Ds[0][key] for key in Ds[0] if (type(Ds[0][key]) in [int, float])}
+  for D in Ds[1:]:
+    assert D.keys() == Ds[0].keys()
+    for key in output:
+      output[key] += D[key]
+
+  for key in output:
+    output[key] /= len(Ds)
+  return output
+
+def count_params(params, count_hidden_biases=True, count_readout_biases=False):
   """Count the total number of parameters in a stax FCN.
 
   params -- the list of parameter tensors
-  count_biases -- if False, count only weights
+  count_hidden_biases -- if False, count only weights in hidden layers
+  count_readout_biases -- if False, count only weights in readout layer
   """
   total = 0
-  for layer in params:
+  for layer in params[:-1]:
     if len(layer) == 0:
       continue
-    total += layer[0].size + (layer[1].size if count_biases else 0)
+    total += layer[0].size + (layer[1].size if count_hidden_biases else 0)
+  total += params[-1][0].size + (params[-1][1].size if count_readout_biases else 0)
+  
   return total
 
 def get_net_fns(width, d_out, n_hidden_layers=1, W_std=1.4, b_std=.1, phi='relu', phi_deg=40):

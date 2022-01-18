@@ -19,8 +19,8 @@ def get_unit_circle_dataset(M, target_terms, full=True, n=None, subkey=None):
     assert (n is not None) and (subkey is not None)
     thetas = random.choice(subkey, thetas, shape=[n], replace=False)
     # jax throws an error when optimizing on one data point, so add a duplicate
-    if n == 1:
-      thetas = np.concatenate([thetas, thetas])
+    # if n == 1:
+    #   thetas = np.concatenate([thetas, thetas])
 
   thetas = thetas[:, None]
   coords = np.concatenate([np.cos(thetas), np.sin(thetas)], axis=1)

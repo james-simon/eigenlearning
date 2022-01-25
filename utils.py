@@ -126,7 +126,7 @@ def kernel_predictions(kernel_fn, dataset, k_type='ntk', diag_reg=0):
 
   return test_y_hat
 
-def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot_es=[], print_every=None, compute_acc=False, batch_size=None, loss_fn='mse'):
+def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot_es=[], print_every=None, compute_acc=False, batch_size=None, loss_fn='mse', return_params=False):
   """Train a neural network and return its final predictions.
 
   net_fns -- a JAX init_fn, apply_fn (uncentered), and kernel_fn (unused here)
@@ -203,9 +203,16 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
   train_preds = apply_fn(get_params(state), train_X)
   test_preds = apply_fn(get_params(state), test_X)
 
-  return {
+  results = {
     'train_preds': train_preds,
     'test_preds': test_preds,
     'epcs': i + 1,
     'snapshots': snapshots
   }
+  if return_params:
+    results += {
+      'apply_fn': apply_fn,
+      'params': get_params(state)
+    }
+
+  return results

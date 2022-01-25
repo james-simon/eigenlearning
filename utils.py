@@ -210,9 +210,7 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
     'snapshots': snapshots
   }
   if return_params:
-    results += {
-      'apply_fn': apply_fn,
-      'params': get_params(state)
-    }
+    results['apply_fn'] = apply_fn
+    results['params'] = get_params(state)
 
   return results

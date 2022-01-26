@@ -286,10 +286,11 @@ def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kw
   # calculate E
   E = 0
   for f_term in f_terms:
+    k = f_term if isinstance(f_term, int) else f_term[0]
     E += (n * C / q) * f_terms[f_term] ** 2 / (lambdas[k] + C) ** 2
   E = E.item()
 
-  # calcualte g_coeffs
+  # calculate g_coeffs
   g_coeff_preds = []
 
   for g_termset in g_terms:

@@ -17,13 +17,16 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
     if name == 'cifar10':
         train_Xy = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=None)
         test_Xy = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=None)
+    if name == 'cifar100':
+        train_Xy = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=None)
+        test_Xy = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=None)
 
-    train_X = train_Xy.data.numpy() if name not in ['cifar10'] else train_Xy.data
-    train_y_labels = train_Xy.targets if name not in ['cifar10'] else torch.Tensor(train_Xy.targets).long()
+    train_X = train_Xy.data.numpy() if name not in ['cifar10','cifar100'] else train_Xy.data
+    train_y_labels = train_Xy.targets if name not in ['cifar10','cifar100'] else torch.Tensor(train_Xy.targets).long()
     train_y = np.array(F.one_hot(train_y_labels))
 
-    test_X = test_Xy.data.numpy() if name not in ['cifar10'] else test_Xy.data
-    test_y_labels = test_Xy.targets if name not in ['cifar10'] else torch.Tensor(test_Xy.targets).long()
+    test_X = test_Xy.data.numpy() if name not in ['cifar10','cifar100'] else test_Xy.data
+    test_y_labels = test_Xy.targets if name not in ['cifar10','cifar100'] else torch.Tensor(test_Xy.targets).long()
     test_y = np.array(F.one_hot(test_y_labels))
 
     if classes is not None:

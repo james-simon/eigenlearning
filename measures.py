@@ -160,11 +160,11 @@ def learning_measure_statistics(net_fns, domain, n, f_terms=None, g_terms=[], pr
       g_fns = targets[1:]
       D, [f_D] = get_hypersphere_dataset(kwargs['d'], [f_terms], n, subkey2)
 
-    elif domain in ['mnist', 'fmnist', 'cifar10']:
+    elif domain in ['mnist', 'fmnist', 'cifar10', 'cifar100']:
       D, f_D, X, f_X = get_image_dataset(domain, n_train=n, n_test=kwargs['n_test'], subkey=subkey, classes=(kwargs['classes'] if 'classes' in kwargs else None))
       g_fns = []
 
-    elif domain in ['mnist normalized', 'fmnist normalized', 'cifar10 normalized']:
+    elif domain in ['mnist normalized', 'fmnist normalized', 'cifar10 normalized', 'cifar100 normalized']:
       D, f_D, X, f_X = get_image_dataset(domain.split()[0], n_train=n, n_test=kwargs['n_test'], subkey=subkey, normalized=True, classes=(kwargs['classes'] if 'classes' in kwargs else None))
       g_fns = []
 

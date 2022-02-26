@@ -87,7 +87,8 @@ def count_params(params, count_hidden_biases=True, count_readout_biases=False):
 
 
 def kernel_eigendecomposition(K, f=None):
-    vals, vecs = basenp.linalg.eig(K / len(f))
+    assert K.shape[0] == K.shape[1]
+    vals, vecs = basenp.linalg.eig(K / K.shape[0])
 
     order = basenp.flip(basenp.argsort(vals))
     vals, vecs = vals[order], vecs.T[order]

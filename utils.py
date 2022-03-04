@@ -162,11 +162,11 @@ def sample_kernel(kernel_fn, cosines, d, norm=1, k_type='ntk'):
     return Ks
 
 
-def kernel_predictions(kernel_fn, dataset, k_type='ntk', diag_reg=0):
+def kernel_predictions(kernel_fn, dataset, k_type='ntk', ridge=0):
     (train_X, train_y), (test_X, test_y) = dataset
 
     if len(train_X) > 0:
-        predict_fn = nt.predict.gradient_descent_mse_ensemble(kernel_fn, train_X, train_y, diag_reg=diag_reg,
+        predict_fn = nt.predict.gradient_descent_mse_ensemble(kernel_fn, train_X, train_y, diag_reg=ridge,
                                                               diag_reg_absolute_scale=True)
         test_y_hat = predict_fn(x_test=test_X, get=k_type, compute_cov=False)
     else:

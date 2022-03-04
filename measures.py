@@ -234,8 +234,8 @@ def L_sum(C, lambdas, mults=1):
   return (mults * lambdas / (lambdas + C)).sum()
 
 # find C for a given eigensystem and n
-def find_C(n, lambdas, mults=1):
-  return sp.optimize.fsolve(lambda C: L_sum(C, lambdas, mults=mults) - n, sorted(lambdas, reverse=True)[min([round(n), len(lambdas) - 1])])
+def find_C(n, lambdas, mults=1, ridge=0):
+  return sp.optimize.fsolve(lambda C: L_sum(C, lambdas, mults=mults) + ridge/C - n, sorted(lambdas, reverse=True)[min([round(n), len(lambdas) - 1])])
 
 
 def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kwargs):
@@ -244,8 +244,8 @@ def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kw
   kernel_fn -- a JAX kernel function
   domain -- 'circle', 'hypercube', or 'hypersphere'
   n -- the trainset size
-  f_terms -- coefficients of the target function f
-  g_terms -- list of coefficients of the probe functions g
+  f_terms -- coefficients of the target function f to be learned
+  g_terms -- list of coefficients of the probe functions g for which to predict the mean and std of <f_hat,g>
   pred_type -- 'net', 'kernel', or 'both'
   kwargs -- other optional parameters
   """
@@ -272,8 +272,9 @@ def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kw
       lambdas, mults = hypersphere_eigenvalues(kernel_fn, kwargs['d'], k_max=70)
 
   # calculate C and q
-  C = find_C(n, lambdas, mults).item()
-  q = (mults * lambdas / (lambdas + C) ** 2).sum().item()
+  ridge = 0 if 'ridge' not in kwargs else kwargs['ridge']
+  C = find_C(n, lambdas, mults=mults, ridge=ridge).item()
+  denom = n - (mults * lambdas**2 / (lambdas + C) ** 2).sum().item()
 
   # calculate L
   L_num, L_denom = 0, 0
@@ -287,7 +288,9 @@ def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kw
   E = 0
   for f_term in f_terms:
     k = f_term if isinstance(f_term, int) else f_term[0]
-    E += (n * C / q) * f_terms[f_term] ** 2 / (lambdas[k] + C) ** 2
+    E += (n / denom) * C**2 / (lambdas[k] + C) ** 2 * f_terms[f_term] ** 2
+  if 'noise_std' in kwargs:
+    E += (n / denom) * kwargs['noise_std']**2
   E = E.item()
 
   # calculate g_coeffs

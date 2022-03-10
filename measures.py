@@ -235,7 +235,7 @@ def L_sum(C, lambdas, mults=1):
 
 # find C for a given eigensystem and n
 def find_C(n, lambdas, mults=1, ridge=0):
-  return sp.optimize.fsolve(lambda C: L_sum(C, lambdas, mults=mults) + ridge/C - n, sorted(lambdas, reverse=True)[min([round(n), len(lambdas) - 1])])
+  return sp.optimize.fsolve(lambda C: L_sum(C, lambdas, mults=mults) + ridge/C - n, min(ridge/n, sorted(lambdas, reverse=True)[min([round(n), len(lambdas) - 1])]))
 
 
 def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kwargs):

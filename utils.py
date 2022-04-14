@@ -115,7 +115,7 @@ def get_laplace_kernel_fn(w=1):
         - squared_distance_matrix(X1, X2 if X2 is not None else X1) ** .5 / w)
 
 
-def get_net_fns(width, d_out, n_hidden_layers=1, W_std=1.4, b_std=.1, phi='relu', phi_deg=40):
+def get_net_fns(width, d_out, n_hidden_layers=1, W_std=2**.5, b_std=.1, phi='relu', phi_deg=40):
     """Generate JAX functions for a fully-connected network given hyperparameters.
 
     width -- the width of the hidden layers

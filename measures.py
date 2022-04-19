@@ -235,7 +235,10 @@ def L_sum(C, lambdas, mults=1):
 
 # find C for a given eigensystem and n
 def find_C(n, lambdas, mults=1, ridge=0):
-  return sp.optimize.fsolve(lambda C: L_sum(C, lambdas, mults=mults) + ridge/C - n, min(ridge/n, sorted(lambdas, reverse=True)[min([round(n), len(lambdas) - 1])]))
+  C0 = max(ridge / n, sorted(lambdas, reverse=True)[min([round(n), len(lambdas) - 1])])
+  logC = sp.optimize.fsolve(
+    lambda logC: L_sum(np.exp(logC), lambdas, mults=mults) + ridge / np.exp(logC) - n, np.log(C0))
+  return np.exp(logC).item()
 
 
 def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kwargs):
@@ -273,7 +276,7 @@ def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kw
 
   # calculate C and q
   ridge = 0 if 'ridge' not in kwargs else kwargs['ridge']
-  C = find_C(n, lambdas, mults=mults, ridge=ridge).item()
+  C = find_C(n, lambdas, mults=mults, ridge=ridge)
   denom = n - (mults * lambdas**2 / (lambdas + C) ** 2).sum().item()
 
   # calculate L

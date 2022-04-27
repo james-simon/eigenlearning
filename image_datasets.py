@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torchvision
 
 
-def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None, flattened=True, normalized=False):
+def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None, flattened=True, normalized=False, downsampling_factor=None):
 
     if name == 'mnist':
         train_Xy = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=None)
@@ -36,6 +36,9 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
         if len(classes) == 2:
             train_y, test_y = train_y[:,:1] * 2 - 1, test_y[:,:1] * 2 - 1
 
+    if downsampling_factor is not None:
+        train_X, test_X = train_X[:,::downsampling_factor,::downsampling_factor], test_X[:,::downsampling_factor,::downsampling_factor]
+
     # normalize globally (correct for the overall mean and std)
     train_mean = train_X.mean()
     train_std = train_X.std()
@@ -44,8 +47,8 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
 
     # normalize locally (normalize each image vector independently)
     if normalized:
-        train_X /= (train_X ** 2).mean(axis=1)[:, None] ** .5
-        test_X /= (test_X ** 2).mean(axis=1)[:, None] ** .5
+        train_X /= (train_X ** 2).mean(axis=(1,2,3))[:, None] ** .5
+        test_X /= (test_X ** 2).mean(axis=(1,2,3))[:, None] ** .5
 
     # convert to jax.np
     train_X, train_y, test_X, test_y = np.array(train_X), np.array(train_y), np.array(test_X), np.array(test_y)

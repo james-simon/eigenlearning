@@ -189,7 +189,7 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
     lr -- the learning rate
     subkey -- the random key to use for initialization
     stop_mse -- a lower threshold for training MSE; training stops if it's passed
-    snapshot_es -- epochs at which to capture and return a snapshot of the network's train and test predictions
+    snapshot_es -- epochs at which to capture and return a snapshot of the network's train and test predictions (before training for that epoch)
     print_every -- if not None, train and test metrics are printed every print_every epochs
     """
     (train_X, train_y), (test_X, test_y) = dataset
@@ -225,6 +225,24 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
     for i in range(n_epochs):
         params = get_params(state)
 
+        # print current state (using params before step)
+        if print_every is not None and i % print_every == 0:
+            train_y_hat, test_y_hat = apply_fn(params, train_X), apply_fn(params, test_X)
+            train_loss, test_loss = loss(train_y, train_y_hat), loss(test_y, test_y_hat)
+            if not compute_acc:
+                print('{}\t\t{:.8f}\t{:.8f}'.format(i, train_loss, test_loss))
+            else:
+                train_acc = acc(train_y, train_y_hat)
+                test_acc = acc(test_y, test_y_hat)
+                print('{}\t\t{:.8f}\t{:.8f}\t\t{:.8f}\t{:.8f}'.format(i, train_loss, test_loss, train_acc, test_acc))
+
+        # log snapshot of predictions (using params before step)
+        if i in snapshot_es:
+            train_preds = apply_fn(params, train_X).tolist()
+            test_preds = apply_fn(params, test_X).tolist()
+            snapshots[i] = {'train_preds': train_preds, 'test_preds': test_preds}
+
+        # perform GD or SGD step(s)
         if batch_size is None:
             state = opt_apply(i, grad_loss(params, train_X, train_y), state)
         else:
@@ -238,21 +256,6 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
             train_loss = loss(train_y, apply_fn(params, train_X))
             if train_loss < stop_mse:
                 break
-
-        if print_every is not None and i % print_every == 0:
-            train_y_hat, test_y_hat = apply_fn(params, train_X), apply_fn(params, test_X)
-            train_loss, test_loss = loss(train_y, train_y_hat), loss(test_y, test_y_hat)
-            if not compute_acc:
-                print('{}\t\t{:.8f}\t{:.8f}'.format(i, train_loss, test_loss))
-            else:
-                train_acc = acc(train_y, train_y_hat)
-                test_acc = acc(test_y, test_y_hat)
-                print('{}\t\t{:.8f}\t{:.8f}\t\t{:.8f}\t{:.8f}'.format(i, train_loss, test_loss, train_acc, test_acc))
-
-        if i in snapshot_es:
-            train_preds = apply_fn(get_params(state), train_X).tolist()
-            test_preds = apply_fn(get_params(state), test_X).tolist()
-            snapshots[i] = {'train_preds': train_preds, 'test_preds': test_preds}
 
     train_preds = apply_fn(get_params(state), train_X)
     test_preds = apply_fn(get_params(state), test_X)

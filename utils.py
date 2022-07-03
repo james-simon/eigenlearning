@@ -155,8 +155,8 @@ def sample_kernel(kernel_fn, cosines, d, norm=1, k_type='ntk'):
     k_type -- either 'ntk' or 'nngp'
     """
     sines = (1 - cosines ** 2) ** .5
-    u0 = jax.ops.index_update(np.zeros(d), 0, 1)
-    u1 = jax.ops.index_update(np.zeros(d), 1, 1)
+    u0 = np.array([1*(i == 0) for i in range(d)]) # [1, 0, 0, 0, ...]
+    u1 = np.array([1*(i == 1) for i in range(d)]) # [0, 1, 0, 0, ...]
     xs = np.outer(cosines, u0) + np.outer(sines, u1)
     xs = norm * xs
 

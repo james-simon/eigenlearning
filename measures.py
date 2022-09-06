@@ -15,17 +15,18 @@ from image_datasets import get_image_dataset
 import utils
 from utils import kernel_predictions, net_predictions
 
-def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', diag_reg=0, compute_acc=False):
+def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', ridge=0, compute_acc=False):
   """Return learning measures for a kernel on a particular dataset
 
   kernel_fn -- a JAX kernel function
   dataset -- a double tuple containing (train_X, train_y), (test_X, test_y)
   g_fns -- alternate target functions of the same shape as test_y to find the coefficients of
-  k_type -- 'ntk' or 'nngp
+  k_type -- 'ntk' or 'nngp'
+  ridge -- absolute ridge parameter
   """
 
   t0 = time.time()
-  test_y_hat = kernel_predictions(kernel_fn, dataset, k_type, diag_reg=diag_reg)
+  test_y_hat = kernel_predictions(kernel_fn, dataset, k_type, ridge=ridge)
   t = time.time() - t0
 
   (_, _), (_, test_y) = dataset
@@ -190,7 +191,8 @@ def learning_measure_statistics(net_fns, domain, n, f_terms=None, g_terms=[], pr
                                  dataset,
                                  g_fns=g_fns,
                                  k_type='ntk',
-                                 compute_acc=kwargs['compute_acc'] if 'compute_acc' in kwargs else False
+                                 compute_acc=kwargs['compute_acc'] if 'compute_acc' in kwargs else False,
+                                 ridge=kwargs['ridge'] if 'ridge' in kwargs else 0,
                                  ) if pred_type in ['kernel', 'both'] else {}
 
     measures_n = net_measures(net_fns,

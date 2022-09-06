@@ -44,7 +44,7 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', ridge=0, compute
 
   train_lrn, train_mse, train_acc = None, None, None
   if compute_train_measures:
-    train_y_hat = kernel_predictions(kernel_fn, dataset, k_type, ridge=ridge)
+    train_y_hat = kernel_predictions(kernel_fn, (dataset[0],dataset[0]), k_type, ridge=ridge)
     train_lrn = utils.lrn(train_y, train_y_hat)
     train_mse = utils.mse(train_y, train_y_hat)
     train_acc = utils.acc(train_y, train_y_hat)

@@ -15,7 +15,7 @@ from image_datasets import get_image_dataset
 import utils
 from utils import kernel_predictions, net_predictions
 
-def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', ridge=0, compute_train_measures=False):
+def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', ridge=0, compute_acc=True, compute_train_measures=False):
   """Return learning measures for a kernel on a particular dataset
 
   kernel_fn -- a JAX kernel function
@@ -38,7 +38,7 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', ridge=0, compute
   lrn = utils.lrn(test_y, test_y_hat)
   mse = utils.mse(test_y, test_y_hat)
   l1_loss = utils.l1_loss(test_y, test_y_hat)
-  acc = utils.acc(test_y, test_y_hat)
+  acc = utils.acc(test_y, test_y_hat) if compute_acc else None
 
   g_coeffs = [(g * test_y_hat).mean().item() for g in g_fns]
 
@@ -73,7 +73,7 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', ridge=0, compute
     'arora_et_al_bound': arora_et_al_bound
   }
 
-def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, print_every=None, compute_acc=False, batch_size=None, loss_fn='mse'):
+def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, print_every=None, compute_acc=True, batch_size=None, loss_fn='mse'):
   """Return learning measures for a network architecture on a particular dataset
 
   net_fns -- a JAX init_fn, apply_fn (uncentered), and kernel_fn (unused here)
@@ -106,7 +106,7 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
   lrn = utils.lrn(test_y, test_y_hat)
   mse = utils.mse(test_y, test_y_hat)
   l1_loss = utils.l1_loss(test_y, test_y_hat)
-  acc = utils.acc(test_y, test_y_hat)
+  acc = utils.acc(test_y, test_y_hat) if compute_acc else None
   train_lrn = utils.lrn(train_y, train_y_hat)
   train_mse = utils.mse(train_y, train_y_hat)
   train_acc = utils.acc(train_y, train_y_hat)

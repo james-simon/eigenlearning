@@ -15,7 +15,7 @@ from image_datasets import get_image_dataset
 import utils
 from utils import kernel_predictions, net_predictions
 
-def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', ridge=0, compute_acc=False):
+def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', ridge=0, compute_train_measures=False):
   """Return learning measures for a kernel on a particular dataset
 
   kernel_fn -- a JAX kernel function
@@ -29,7 +29,7 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', ridge=0, compute
   test_y_hat = kernel_predictions(kernel_fn, dataset, k_type, ridge=ridge)
   t = time.time() - t0
 
-  (_, _), (_, test_y) = dataset
+  (_, train_y), (_, test_y) = dataset
 
   # lrn = ((test_y * test_y_hat).mean() / (test_y ** 2).mean()).item()
   # mse = ((test_y - test_y_hat) ** 2).mean().item()
@@ -41,6 +41,14 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', ridge=0, compute
   acc = utils.acc(test_y, test_y_hat)
 
   g_coeffs = [(g * test_y_hat).mean().item() for g in g_fns]
+
+  train_lrn, train_mse, train_acc = None, None, None
+  if compute_train_measures:
+    train_y_hat = kernel_predictions(kernel_fn, dataset, k_type, ridge=ridge)
+    train_lrn = utils.lrn(train_y, train_y_hat)
+    train_mse = utils.mse(train_y, train_y_hat)
+    train_acc = utils.acc(train_y, train_y_hat)
+
 
   # acc = (
   #   (test_y * test_y_hat > 0).mean().item() if test_y.shape[1] == 1 else (np.argmax(test_y, axis=1) == np.argmax(test_y_hat, axis=1)).mean()
@@ -55,6 +63,9 @@ def kernel_measures(kernel_fn, dataset, g_fns=[], k_type='ntk', ridge=0, compute
   return {
     'lrn': lrn,
     'mse': mse,
+    'train_lrn': train_lrn,
+    'train_mse': train_mse,
+    'train_acc': train_acc,
     'l1_loss': l1_loss,
     'acc': acc,
     'g_coeffs': g_coeffs,
@@ -96,6 +107,7 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
   mse = utils.mse(test_y, test_y_hat)
   l1_loss = utils.l1_loss(test_y, test_y_hat)
   acc = utils.acc(test_y, test_y_hat)
+  train_lrn = utils.lrn(train_y, train_y_hat)
   train_mse = utils.mse(train_y, train_y_hat)
   train_acc = utils.acc(train_y, train_y_hat)
 
@@ -107,6 +119,7 @@ def net_measures(net_fns, dataset, g_fns, n_epochs, lr, subkey, stop_mse=0, prin
     'l1_loss': l1_loss,
     'acc': acc,
     'g_coeffs': g_coeffs,
+    'train_lrn': train_lrn,
     'train_mse': train_mse,
     'train_acc': train_acc,
     'epcs': epcs,
@@ -193,6 +206,7 @@ def learning_measure_statistics(net_fns, domain, n, f_terms=None, g_terms=[], pr
                                  k_type='ntk',
                                  compute_acc=kwargs['compute_acc'] if 'compute_acc' in kwargs else False,
                                  ridge=kwargs['ridge'] if 'ridge' in kwargs else 0,
+                                 compute_train_measures=kwargs['compute_train_measures'] if 'compute_train_measures' in kwargs else False,
                                  ) if pred_type in ['kernel', 'both'] else {}
 
     measures_n = net_measures(net_fns,

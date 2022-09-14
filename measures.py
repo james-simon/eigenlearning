@@ -341,6 +341,6 @@ def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kw
   return {
     'lrn': L,
     'mse': E,
-    'train_mse': E,
+    'train_mse': E_tr,
     'g_coeffs': g_coeff_preds
   }

@@ -312,7 +312,7 @@ def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kw
     E += (n / denom) * kwargs['noise_std']**2
   E = E.item()
 
-  E_tr = (ridge / C)**2 * E
+  E_tr = (ridge / (n * C))**2 * E
 
   # calculate g_coeffs
   g_coeff_preds = []

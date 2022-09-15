@@ -6,8 +6,6 @@ import torch
 import torch.nn.functional as F
 import torchvision
 
-import matplotlib.pyplot as plt
-
 
 def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None, flattened=True, normalized=False, downsampling_factor=None):
 
@@ -50,6 +48,7 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
             y = F.one_hot(torch.Tensor(y).long())
         else:
             y = 2*y - 1
+            y = y[:, None] #reshape
 
         # convert to immutable jax arrays
         x, y = jnp.array(x), jnp.array(y)

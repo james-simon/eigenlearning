@@ -312,6 +312,8 @@ def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kw
     E += (n / denom) * kwargs['noise_std']**2
   E = E.item()
 
+  E_tr = (ridge / (n * C))**2 * E
+
   # calculate g_coeffs
   g_coeff_preds = []
 
@@ -332,12 +334,13 @@ def learning_measure_predictions(kernel_fn, domain, n, f_terms, g_terms=[], **kw
       k = tg_i if isinstance(tg_i, int) else tg_i[0]
       g_factor += g_termset[tg_i] ** 2 * lambdas[k] ** 2 / (lambdas[k] + C) ** 2
 
-    g_coeff_var = ((C / q) * f_factor * g_factor).item()
+    g_coeff_var = ((C / denom) * f_factor * g_factor).item()
     g_coeff_std = g_coeff_var ** .5
     g_coeff_preds += [(g_coeff_mean, g_coeff_std)]
 
   return {
     'lrn': L,
     'mse': E,
+    'train_mse': E_tr,
     'g_coeffs': g_coeff_preds
   }

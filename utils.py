@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as np
 from jax import jit, grad, vmap
-from jax.experimental import optimizers
+from jax.example_libraries import optimizers
 
 import neural_tangents as nt
 from neural_tangents import stax

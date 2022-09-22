@@ -35,7 +35,7 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
             # update n_classes
             n_classes = int(max(y)) + 1
 
-        if downsampling_factor is not None:
+        if downsampling_factor:
             x = x[:,::downsampling_factor,::downsampling_factor]
         # normalize globally (correct for the overall mean and std)
         x = (x - x.mean())/x.std()

@@ -1,12 +1,15 @@
 import jax
-import jax.numpy as np
+import jax.numpy as jnp
 from jax import jit, grad, vmap
 from jax.example_libraries import optimizers
+from jax import random
 
 import neural_tangents as nt
 from neural_tangents import stax
 
-import numpy as basenp
+import numpy as np
+
+from image_datasets import get_image_dataset
 
 
 # truncate a float into a short string
@@ -28,29 +31,29 @@ def mse(y, y_hat, item=True):
 
 def l1_loss(y, y_hat):
     if len(y.shape) == 1:
-        return np.abs(y - y_hat).mean().item()
+        return jnp.abs(y - y_hat).mean().item()
     else:
-        return np.abs(y - y_hat).sum(axis=1).mean().item()
+        return jnp.abs(y - y_hat).sum(axis=1).mean().item()
 
 
 def acc(y, y_hat):
     if len(y.shape) == 1 or y.shape[1] == 1:
         return (y * y_hat > 0).mean().item()
     else:
-        return (np.argmax(y, axis=1) == np.argmax(y_hat, axis=1)).mean().item()
+        return (jnp.argmax(y, axis=1) == jnp.argmax(y_hat, axis=1)).mean().item()
 
 
 # assumes y_hat are logits
 def xe(y, y_hat, item=True):
     if len(y.shape) == 1 or y.shape[1] == 1:
-        output = -np.log(sigmoid(y * y_hat)).mean()
+        output = -jnp.log(sigmoid(y * y_hat)).mean()
     else:
-        output = -(np.log(jax.nn.softmax(y_hat)) * y).sum(axis=1).mean()
+        output = -(jnp.log(jax.nn.softmax(y_hat)) * y).sum(axis=1).mean()
     return output.item() if item else output
 
 
 def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
+    return 1 / (1 + jnp.exp(-x))
 
 
 def dictionary_mean(Ds):
@@ -89,12 +92,12 @@ def count_params(params, count_hidden_biases=True, count_readout_biases=False):
 def kernel_eigendecomposition(K, f=None, use_jax=False):
     assert K.shape[0] == K.shape[1]
     if not use_jax:
-        vals, vecs = basenp.linalg.eigh(K / K.shape[0])
+        vals, vecs = np.linalg.eigh(K / K.shape[0])
     else:
         vals, vecs = jax.scipy.linalg.eigh(K / K.shape[0])
-        vals, vecs = basenp.array(vals), basenp.array(vecs)
+        vals, vecs = np.array(vals), np.array(vecs)
 
-    order = basenp.flip(basenp.argsort(vals))
+    order = np.flip(np.argsort(vals))
     vals, vecs = vals[order], vecs.T[order]
     output = {'vals': vals, 'vecs': vecs}
 
@@ -104,18 +107,34 @@ def kernel_eigendecomposition(K, f=None, use_jax=False):
 
     return output
 
+def dataset_kernel_eigendecomposition(name, M, kernel_fn=None, classes=None, subkey=None):
+    if kernel_fn is None:
+        _, _, kernel_fn = get_net_fns(width=500, d_out=1, n_hidden_layers=4)
+    trainx, trainy, _, _ = get_image_dataset(name, n_train=M,
+                                             subkey=subkey, classes=classes)
+
+    K = kernel_fn(trainx, get='ntk')
+
+    K = jax.device_put(K)
+    lambdas, v = jnp.linalg.eigh(K)
+    lambdas = np.array(lambdas) / M
+    v = np.array(v)
+    f_eigen = np.matmul(v.T, trainy).reshape(-1)
+    f_eigen = f_eigen / np.linalg.norm(f_eigen)
+    f_terms = {i : v for i, v in enumerate(f_eigen)}
+    return lambdas, f_terms
 
 def squared_distance_matrix(X1, X2):
     return ((X1[:, None, :] - X2[None, :, :]) ** 2).sum(axis=2) / X1[0].size
 
 
 def get_rbf_kernel_fn(w=1):
-    return lambda X1, X2=None, k_type='irrelevant': np.exp(
+    return lambda X1, X2=None, k_type='irrelevant': jnp.exp(
         - squared_distance_matrix(X1, X2 if X2 is not None else X1) / (2 * w ** 2))
 
 
 def get_laplace_kernel_fn(w=1):
-    return lambda X1, X2=None, k_type='irrelevant': np.exp(
+    return lambda X1, X2=None, k_type='irrelevant': jnp.exp(
         - squared_distance_matrix(X1, X2 if X2 is not None else X1) ** .5 / w)
 
 
@@ -150,14 +169,14 @@ def sample_kernel(kernel_fn, cosines, d, norm=1, k_type='ntk'):
 
     kernel_fn -- the JAX kernel function to sample; assumed to be rotationally-invariant
     cosines -- the cosines of the angles at which to sample the kernel
-    d -- the input dimension
-    norm -- the norm of the sample input points
+    d -- the ijnput dimension
+    norm -- the norm of the sample ijnput points
     k_type -- either 'ntk' or 'nngp'
     """
     sines = (1 - cosines ** 2) ** .5
-    u0 = np.array([1*(i == 0) for i in range(d)]) # [1, 0, 0, 0, ...]
-    u1 = np.array([1*(i == 1) for i in range(d)]) # [0, 1, 0, 0, ...]
-    xs = np.outer(cosines, u0) + np.outer(sines, u1)
+    u0 = jnp.array([1*(i == 0) for i in range(d)]) # [1, 0, 0, 0, ...]
+    u1 = jnp.array([1*(i == 1) for i in range(d)]) # [0, 1, 0, 0, ...]
+    xs = jnp.outer(cosines, u0) + jnp.outer(sines, u1)
     xs = norm * xs
 
     # get the kernel between these points and an endpoint
@@ -174,7 +193,7 @@ def kernel_predictions(kernel_fn, dataset, k_type='ntk', ridge=0):
                                                               diag_reg_absolute_scale=True)
         test_y_hat = predict_fn(x_test=test_X, get=k_type, compute_cov=False)
     else:
-        test_y_hat = np.zeros(shape=(len(test_X), 1))
+        test_y_hat = jnp.zeros(shape=(len(test_X), 1))
 
     return test_y_hat
 
@@ -196,8 +215,8 @@ def net_predictions(net_fns, dataset, n_epochs, lr, subkey, stop_mse=0, snapshot
 
     if len(train_X) == 0:
         return {
-            'train_preds': np.array([]),
-            'test_preds': np.zeros_like(test_y),
+            'train_preds': jnp.array([]),
+            'test_preds': jnp.zeros_like(test_y),
             'epcs': 0,
             'snapshots': {}
         }

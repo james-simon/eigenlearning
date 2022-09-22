@@ -88,41 +88,44 @@ def count_params(params, count_hidden_biases=True, count_readout_biases=False):
 
     return total
 
-
-def kernel_eigendecomposition(K, f=None, use_jax=False):
-    assert K.shape[0] == K.shape[1]
-    if not use_jax:
-        vals, vecs = np.linalg.eigh(K / K.shape[0])
+def kernel_eigendecomposition(kernel_fn, x_data, use_jax=True):
+    """
+    Eigendecomposition of a data kernel matrix
+    Args:
+        kernel_fn: The kernel function returned by stax
+        x_data: ndarray of input data, length M
+    Returns:
+        tuple(lambdas, U)
+        lambdas: Mx1 ndarray eigenvalues, increasing order
+        U: MxM ndarray, columns are corresponding eigenvectors
+    """
+    K = kernel_fn(x_data, get='ntk')
+    M = len(x_data)
+    if use_jax:
+        K = jax.device_put(K)
+        lambdas, U = jnp.linalg.eigh(K)
+        lambdas, U = np.array(lambdas), np.array(U)
     else:
-        vals, vecs = jax.scipy.linalg.eigh(K / K.shape[0])
-        vals, vecs = np.array(vals), np.array(vecs)
+        lambdas, U = np.linalg.eigh(K)
+    
+    lambdas /= M
+    return lambdas, U
 
-    order = np.flip(np.argsort(vals))
-    vals, vecs = vals[order], vecs.T[order]
-    output = {'vals': vals, 'vecs': vecs}
-
-    if f is not None:
-        coeffs = (vecs @ f) / len(f) ** .5
-        output['coeffs'] = coeffs
-
-    return output
-
-def dataset_kernel_eigendecomposition(name, M, kernel_fn=None, classes=None, subkey=None):
-    if kernel_fn is None:
-        _, _, kernel_fn = get_net_fns(width=500, d_out=1, n_hidden_layers=4)
-    trainx, trainy, _, _ = get_image_dataset(name, n_train=M,
-                                             subkey=subkey, classes=classes)
-
-    K = kernel_fn(trainx, get='ntk')
-
-    K = jax.device_put(K)
-    lambdas, v = jnp.linalg.eigh(K)
-    lambdas = np.array(lambdas) / M
-    v = np.array(v)
-    f_eigen = np.matmul(v.T, trainy).reshape(-1)
+def function_eigendecomposition(U, y_data):
+    """
+    Decompose a sampled function into eigencomponents
+    Args:
+        U: MxM ndarray, columns are eigenvectors
+        y_data: Mx1 ndarray, sampled function
+    Returns:
+        tuple(f_eigen, f_terms)
+        f_eigen: Mx1 ndarray of eigencoefficients
+        f_terms: same data, dict format
+    """
+    f_eigen = np.matmul(U.T, y_data).reshape(-1)
     f_eigen = f_eigen / np.linalg.norm(f_eigen)
     f_terms = {i : v for i, v in enumerate(f_eigen)}
-    return lambdas, f_terms
+    return f_eigen, f_terms 
 
 def squared_distance_matrix(X1, X2):
     return ((X1[:, None, :] - X2[None, :, :]) ** 2).sum(axis=2) / X1[0].size

@@ -9,9 +9,6 @@ from neural_tangents import stax
 
 import numpy as np
 
-from image_datasets import get_image_dataset
-
-
 # truncate a float into a short string
 def fcut(x, a=3):
     return ('{:.' + str(a) + 'f}').format(x)

@@ -6,8 +6,21 @@ import torch
 import torch.nn.functional as F
 import torchvision
 
-import matplotlib.pyplot as plt
+from utils import get_net_fns, kernel_eigendecomposition, function_eigendecomposition
 
+def get_image_eigendata(dataname, M, kernel_fn=None, classes=None, subkey=None):
+    if kernel_fn is None:
+        _, _, kernel_fn = get_net_fns(width=500, d_out=1, n_hidden_layers=4)
+    trainx, trainy, _, _ = get_image_dataset(dataname, n_train=M,
+                                             subkey=subkey, classes=classes)
+    lambdas, U = kernel_eigendecomposition(kernel_fn, trainx)
+    f_eigen, f_terms = function_eigendecomposition(U, trainy)
+    return {
+        "eigenvals": lambdas,
+        "eigenvecs": U,
+        "f_coeffs": f_eigen,
+        "f_terms": f_terms
+    }
 
 def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None, flattened=True, normalized=False, downsampling_factor=None):
 
@@ -37,7 +50,7 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
             # update n_classes
             n_classes = int(max(y)) + 1
 
-        if downsampling_factor is not None:
+        if downsampling_factor:
             x = x[:,::downsampling_factor,::downsampling_factor]
         # normalize globally (correct for the overall mean and std)
         x = (x - x.mean())/x.std()
@@ -50,6 +63,7 @@ def get_image_dataset(name, n_train=None, n_test=None, classes=None, subkey=None
             y = F.one_hot(torch.Tensor(y).long())
         else:
             y = 2*y - 1
+            y = y[:, None] #reshape
 
         # convert to immutable jax arrays
         x, y = jnp.array(x), jnp.array(y)

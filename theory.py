@@ -1,10 +1,7 @@
 import time
 
 import jax.numpy as np
-from jax import random
-
-import neural_tangents as nt
-
+import numpy as basenp
 import scipy as sp
 
 from unit_circle import get_unit_circle_dataset, unit_circle_eigenvalues
@@ -51,7 +48,7 @@ def theoretical_predictions(n, f_terms, kernel_fn=None, domain=None, lambdas=Non
     assert (kernel_fn is not None and domain is not None) or (lambdas is not None)
 
     # if f_terms is not in dictionary form, make it so (helps with compatibility with synthetic domains)
-    if type(f_terms) in [list, np.array]:
+    if type(f_terms) in [list, np.ndarray, basenp.ndarray]:
         f_terms = {i: f_terms[i] for i in range(len(f_terms))}
 
     # handle the case n=0

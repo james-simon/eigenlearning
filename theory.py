@@ -25,7 +25,7 @@ def lrn_sum(kappa, lambdas, mults=1):
 def find_kappa(n, lambdas, mults=1, ridge=0):
   kappa_0 = max(ridge / n, sorted(lambdas, reverse=True)[min([round(n), len(lambdas) - 1])])
   log_kappa = sp.optimize.fsolve(
-    lambda logC: lrn_sum(np.exp(log_kappa), lambdas, mults=mults) + ridge / np.exp(log_kappa) - n, np.log(kappa_0))
+    lambda log_kappa: lrn_sum(np.exp(log_kappa), lambdas, mults=mults) + ridge / np.exp(log_kappa) - n, np.log(kappa_0))
   return np.exp(log_kappa).item()
 
 # compute eigenmode learnabilities

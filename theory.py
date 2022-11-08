@@ -109,7 +109,7 @@ def theoretical_predictions(n, f_terms, kernel_fn=None, domain=None, lambdas=Non
     mse_tr = (ridge / (n * kappa)) ** 2 * mse_te
 
     return {
-        'modewise_lrns': lrns.to,
+        'modewise_lrns': lrns,
         'e0': e0.item(),
         'mse_train': mse_tr.item(),
         'mse_test': mse_te.item()

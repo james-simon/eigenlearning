@@ -16,16 +16,35 @@ from utils import kernel_predictions, net_predictions
 
 # helper function used in calculating kappa
 def lrn_sum(kappa, lambdas, mults=1):
-  return (mults * lambdas / (lambdas + kappa)).sum()
+    return (mults * lambdas / (lambdas + kappa)).sum()
 
 # find kappa for a given eigensystem and n
 def find_kappa(n, lambdas, mults=1, ridge=0):
-  idxs = np.where(mults.cumsum() >= n)[0]
-  idx_n = idxs.min() if len(idxs) > 0 else len(lambdas) - 1
-  kappa_0 = max(ridge / n, sorted(lambdas, reverse=True)[idx_n])
-  log_kappa = sp.optimize.fsolve(
-    lambda log_kappa: lrn_sum(np.exp(log_kappa), lambdas, mults=mults) + ridge / np.exp(log_kappa) - n, np.log(kappa_0))
-  return np.exp(log_kappa).item()
+    if isinstance(mults, int):
+        idx_n = min(n, len(lambdas))
+    else:
+        idxs = np.where(mults.cumsum() >= n)[0]
+        idx_n = idxs.min() if len(idxs) > 0 else len(lambdas) - 1
+
+    # try optimizing in logspace...
+    kappa_0 = max(ridge / n, sorted(lambdas, reverse=True)[idx_n])
+    log_kappa = sp.optimize.fsolve(
+        lambda log_kappa: lrn_sum(np.exp(log_kappa), lambdas, mults=mults) + ridge / np.exp(log_kappa) - n, np.log(kappa_0))
+    kappa = np.exp(log_kappa).item()
+
+    # if that failed, try optimizing in linear space...
+    error = lrn_sum(kappa, lambdas, mults=mults) + ridge / kappa - n
+    if np.abs(error) > n / 100:
+        kappa = sp.optimize.fsolve(
+            lambda k: lrn_sum(kappa, lambdas, mults=mults) + ridge / k - n,
+            kappa_0).item()
+
+    # if uncommented: check for failure again and throw an exception if it fails
+    # error = lrn_sum(kappa, lambdas, mults=mults) + ridge / kappa - n
+    # if np.abs(error) > n / 100:
+    #   raise ValueError('kappa optimization failed!')
+
+    return kappa
 
 # compute eigenmode learnabilities
 def eigenmode_learnabilities(n, lambdas, mults=1, ridge=0, kappa=None):
@@ -90,8 +109,8 @@ def theoretical_predictions(n, f_terms, kernel_fn=None, domain=None, lambdas=Non
     mse_tr = (ridge / (n * kappa)) ** 2 * mse_te
 
     return {
-        'modewise_lrns': lrns,
-        'e0': e0,
-        'mse_train': mse_tr,
-        'mse_test': mse_te
+        'modewise_lrns': lrns.to,
+        'e0': e0.item(),
+        'mse_train': mse_tr.item(),
+        'mse_test': mse_te.item()
     }

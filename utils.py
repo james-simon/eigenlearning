@@ -112,7 +112,7 @@ def function_eigendecomposition(U, y_data):
     """
     Decompose a sampled function into eigencomponents
     Args:
-        U: MxM ndarray, columns are eigenvectors
+        U: MxM ndarray, columns are eigenvectors (sorted by incr eigenval)
         y_data: Mx1 ndarray, sampled function
     Returns:
         tuple(f_eigen, f_terms)

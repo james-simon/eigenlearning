@@ -21,7 +21,6 @@ def lrn_sum(kappa, lambdas, mults=1):
 # find kappa for a given eigensystem and n
 def find_kappa(n, lambdas, mults=1, ridge=0):
     kappa = sp.optimize.bisect(lambda k: lrn_sum(kappa, lambdas, mults=mults) + ridge / k - n, 1e-10, 1e10)
-
     return kappa
 
 # compute eigenmode learnabilities
@@ -39,9 +38,9 @@ def eigenmode_learnabilities(n, lambdas, mults=1, ridge=0, kappa=None):
 def noise_fitting_factor(n, lambdas, mults=1, ridge=0, kappa=None):
     lrns = eigenmode_learnabilities(n, lambdas, mults=mults, ridge=ridge, kappa=kappa)
 
-    lrn_sum = (lrns ** 2 * mults).sum()
+    lrn2_sum = (lrns ** 2 * mults).sum()
 
-    return n / (n - lrn_sum)
+    return n / (n - lrn2_sum)
 
 def theoretical_predictions(n, f_terms, kernel_fn=None, domain=None, lambdas=None, mults=1, ridge=0, **kwargs):
     assert (kernel_fn is not None and domain is not None) or (lambdas is not None)

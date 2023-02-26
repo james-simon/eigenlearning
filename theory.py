@@ -3,6 +3,7 @@ import time
 import jax.numpy as np
 import numpy as basenp
 import scipy as sp
+from scipy import optimize
 
 from unit_circle import get_unit_circle_dataset, unit_circle_eigenvalues
 from hypercube import get_hypercube_dataset, hypercube_eigenvalues
@@ -20,7 +21,7 @@ def lrn_sum(kappa, lambdas, mults=1):
 
 # find kappa for a given eigensystem and n
 def find_kappa(n, lambdas, mults=1, ridge=0):
-    kappa = sp.optimize.bisect(lambda k: lrn_sum(kappa, lambdas, mults=mults) + ridge / k - n, 1e-10, 1e10)
+    kappa = sp.optimize.bisect(lambda k: lrn_sum(k, lambdas, mults=mults) + ridge / k - n, 1e-10, 1e10)
     return kappa
 
 # compute eigenmode learnabilities

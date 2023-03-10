@@ -50,31 +50,7 @@ def find_kappa(n, spectrum, ridge):
         eigenlrns = get_eigenmode_learnabilities(spectrum, kappa)
         return (eigenlrns * mults).sum()
     
-    kappa = scipy_opt.bisect(lambda kap: lrn_sum(kap) + ridge / (kap+1e-14) - n,
-                             0, 1e10)
-    
-    # idxs = jnp.where(mults.cumsum() >= n)[0]    
-    # lambda_crit = spectrum[idxs.min()] if len(idxs) > 0 else 1e-9
-
-    # # try optimizing in logspace...
-    # kappa_init = max(ridge / n, lambda_crit)
-    # log_kappa = sp.optimize.fsolve(
-    #     lambda log_kappa: lrn_sum(jnp.exp(log_kappa)) + ridge / jnp.exp(log_kappa) - n,
-    #     jnp.log(kappa_init))
-    # kappa = jnp.exp(log_kappa).item()
-
-    # if that failed, try optimizing in linear space...
-    # error = lrn_sum(kappa) + ridge / kappa - n
-    # if np.abs(error) > n / 100:
-    #     kappa = sp.optimize.fsolve(
-    #         lambda k: lrn_sum(kappa) + ridge / k - n,
-    #         kappa_0).item()
-
-    # if uncommented: check for failure again and throw an exception if it fails
-    # error = lrn_sum(kappa) + ridge / kappa - n
-    # if np.abs(error) > n / 100:
-    #   raise ValueError('kappa optimization failed!')
-
+    kappa = scipy_opt.bisect(lambda kap: lrn_sum(kap) + ridge / (kap+1e-14) - n, 0, 1e10)
     return kappa
 
 
@@ -99,7 +75,7 @@ def theoretical_predictions(n, eigenlevel_coeffs, spectrum, ridge=0, noise_std=0
     L = (f**2 * eigenlearnabilities).sum() / (f**2).sum()
     
     # compute mse
-    test_mse = e0 * (((1-eigenlearnabilities)**2 * f**2).sum() + noise_std**2)
+    test_mse = e0 * (((1-eigenlearnabilities)**2 * f**2).sum() + noise_std**2)cd D
 
     train_mse = (ridge / (n * kappa))**2 * test_mse
     

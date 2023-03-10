@@ -111,9 +111,3 @@ def compute_metrics(y, y_hat):
         l1_loss = jnp.abs(y - y_hat).sum(axis=1).mean().item()
         acc = (jnp.argmax(y, axis=1) == jnp.argmax(y_hat, axis=1)).mean().item()
     return learnability, mse, l1_loss, acc
-
-
-def get_performance_metrics(train_y, train_y_hat, test_y, test_y_hat):
-    train_metrics = compute_metrics(train_y, train_y_hat)
-    test_metrics = compute_metrics(test_y, test_y_hat)
-    return train_metrics, test_metrics

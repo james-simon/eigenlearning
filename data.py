@@ -7,6 +7,8 @@ from scipy.special import eval_gegenbauer, roots_gegenbauer, gamma
 
 from abc import ABC, abstractmethod
 
+from theory import Spectrum
+
 
 def sample_rotn_invar_kernel(kernel_fn, cosines, d, k_type):
     """Sample different angles of a rotationally-invariant kernel.
@@ -34,7 +36,7 @@ class SyntheticDomain(ABC):
         pass
     
     @abstractmethod
-    def get_eigenvalues(self, kernel_fn, k_type='ntk'):
+    def get_spectrum(self, kernel_fn, k_type='ntk'):
         pass
     
     @abstractmethod
@@ -71,7 +73,7 @@ class Hypersphere(SyntheticDomain):
         d = self.dim
         return (2 * k + d - 2) / k * sp.special.comb(k + d - 3, k - 1)
 
-    def get_eigenvalues(self, kernel_fn, k_max=50, k_type='ntk'):
+    def get_spectrum(self, kernel_fn, k_max=50, k_type='ntk'):
         """ Return the eigenvalues (+ multiplicities) of the given rotationally-invariant kernel
         on the hypersphere
         kernel_fn -- The neural_tangents kernel function. Assumed to be rotation-invariant
@@ -93,8 +95,9 @@ class Hypersphere(SyntheticDomain):
 
         eigenvalues = []
         multiplicities = []
+        kk = range(k_max + 1)
 
-        for k in range(k_max + 1):
+        for k in kk:
             fs = self.eval_eigenfn(k, zs, normalization='max 1')
 
             # integrate the eigenfn against the kernel
@@ -105,7 +108,7 @@ class Hypersphere(SyntheticDomain):
             eigenvalues.append(lambda_k)
             multiplicities.append(mult_k)
 
-        return jnp.array(eigenvalues), jnp.array(multiplicities)
+        return Spectrum(eigenvalues, multiplicities, kk)
 
     def get_dataset(self, target, n_train, n_test, subkey=None):
         """ Generate a dataset on the hypersphere.
@@ -152,7 +155,7 @@ class Hypercube(SyntheticDomain):
         assert dim >= 1
         self.dim = int(dim)
     
-    def get_eigenvalues(self, kernel_fn, k_type='ntk'):
+    def get_spectrum(self, kernel_fn, k_type='ntk'):
         """ Return the eigenvalues (+ multiplicities) of the given rotationally-invariant kernel
         on the hypercube
         kernel_fn -- The neural_tangents kernel function. Assumed to be rotation-invariant
@@ -182,10 +185,10 @@ class Hypercube(SyntheticDomain):
 
                     eigenvalue += mult * Ks[n_bits - n_flips] * (-1)**n_sensitive_flips
 
-            eigenvalues.append(eigenvalue)
+            eigenvalues.append(float(eigenvalue))
             multiplicities.append(sp.special.comb(n_bits, n_sensitive_bits))
 
-        return jnp.array(eigenvalues), jnp.array(multiplicities)
+        return Spectrum(eigenvalues, multiplicities)
     
     def get_dataset(self, target, n_train=None, n_test=None, subkey=None):
         """ Generate a dataset on the hypercube.
@@ -248,21 +251,23 @@ class UnitCircle(SyntheticDomain):
         assert M >= 2
         self.M = int(M)
     
-    def get_eigenvalues(self, kernel_fn, k_type='ntk'):
+    def get_spectrum(self, kernel_fn, k_type='ntk'):
         """Return the eigenvalues (+ multiplicities) of the given rotationally-invariant kernel
         on the discretized unit circle.
         kernel_fn -- The neural_tangents kernel function. Assumed to be rotation-invariant
         k_type (str) -- Either 'ntk' or 'nngp'
         """
-        thetas, coords, _ = self.get_dataset([{(0, None): 1}])
+        thetas = jnp.linspace(0, 2* jnp.pi, self.M, endpoint=False)
+        coords = jnp.vstack([jnp.cos(thetas), jnp.sin(thetas)]).T
         Ks = kernel_fn(coords[0:1], coords, k_type)[0]
 
         # normalize so all eigenvalues to sum to one
         Ks /= Ks[0]
         Ks /= self.M
 
-        eigenvalues = [(jnp.cos(k * thetas)[:, 0] * Ks).sum().item() for k in range(self.M)]
-        return jnp.array(eigenvalues)
+        kk = range(self.M)
+        eigenvalues = [(jnp.cos(k * thetas) * Ks).sum().item() for k in kk]
+        return Spectrum(eigenvalues, kk=kk)
     
     def get_dataset(self, target, n_train=None, n_test=None, subkey=None):
         """Generate a dataset on the hypersphere.
@@ -354,14 +359,16 @@ class ImageData():
         self.dataset = self.dataset_dict[dataset_name]
     
     def get_dataset(self, n_train, n_test=None, classes=None, subkey=None):
+        
         def get_xy(dataset):
+            import numpy as np
             x = dataset.data.numpy() if self.name not in ['cifar10','cifar100'] else dataset.data
             y = dataset.targets.numpy() if self.name not in ['cifar10','cifar100'] else dataset.targets
             n_classes = int(max(y)) + 1
 
             if classes is not None:
                 # convert old class labels to new
-                converter = -1 * jnp.ones(n_classes)
+                converter = -1 * np.ones(n_classes)
                 for new_class, group in enumerate(classes):
                     group = [group] if type(group)==int else group
                     for old_class in group:
@@ -402,12 +409,12 @@ class ImageData():
                 test_X, test_y = test_X[:n_test], test_y[:n_test]
         else:
             sk_train, sk_test = random.split(subkey, 2)
-            train_idxs = random.choice(sk_train, jnp.arange(0, len(train_X)),
-                                       shape=[n_train], replace=False)
+            train_idxs = random.choice(sk_train, len(train_X),
+                                       shape=(int(n_train),), replace=False)
             train_X, train_y = train_X[train_idxs], train_y[train_idxs]
             if n_test is not None:
-                test_idxs = random.choice(sk_test, jnp.arange(0, len(test_X)),
-                                          shape=[n_test], replace=False)
+                test_idxs = random.choice(sk_test, len(test_X),
+                                          shape=(int(n_test),), replace=False)
                 test_X, test_y = test_X[test_idxs], test_y[test_idxs]
         assert len(train_X) == n_train
         if n_test:
@@ -422,12 +429,15 @@ class ImageData():
 
         return train_X, train_y, test_X, test_y
 
-    def get_eigendata(self, train_X, train_y, kernel_fn):
-        lambdas, eigenvectors = kernel_eigendecomposition(kernel_fn, train_X)
-        f_eigen = jnp.matmul(eigenvectors.T, train_y).reshape(-1)
-        f_eigen = f_eigen / jnp.linalg.norm(f_eigen)
+    def get_eigendata(self, kernel_fn, X, y):
+        eigenvalues, eigenvectors = kernel_eigendecomposition(kernel_fn, X)
+        spectrum = Spectrum(eigenvalues)
+        y_eigencoeffs = jnp.matmul(eigenvectors.T, y).reshape(-1)
+        y_eigencoeffs = y_eigencoeffs / jnp.linalg.norm(y_eigencoeffs)
+        eigenvectors = eigenvectors[spectrum.sort_order]
+        y_eigencoeffs = y_eigencoeffs[spectrum.sort_order]
         return {
-            "eigenvals": lambdas,
+            "spectrum": spectrum,
             "eigenvecs": eigenvectors,
-            "f_coeffs": f_eigen,
+            "eigenlevel_coeffs": y_eigencoeffs,
         }

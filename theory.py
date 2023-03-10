@@ -1,94 +1,88 @@
-import time
+import jax.numpy as jnp
+import scipy.optimize as scipy_opt
 
-import jax.numpy as np
-import numpy as basenp
-import scipy as sp
-from scipy import optimize
+class Spectrum():
+    
+    def __init__(self, lambdas, multiplicities=None, kk=None):
+        # assert len(jnp.unique(lambdas)) == len(lambdas)
+        if multiplicities:
+            assert len(multiplicities) == len(lambdas)
+        else:
+            multiplicities = jnp.ones(len(lambdas))
+        if kk:
+            assert len(kk) == len(lambdas)
+        else:
+            kk = list(range(len(lambdas)))
+        
+        lambdas, multiplicities = jnp.array(lambdas), jnp.array(multiplicities)
+        
+        sort_order = lambdas.argsort()[::-1]
+        self.sort_order = sort_order
+        self.n_levels = len(lambdas)
+        self.lambdas = lambdas[sort_order]
+        self.multiplicities = multiplicities[sort_order]
+        self.kk = [kk[i] for i in sort_order]
+        self.k_ind = {k:i for i,k in enumerate(self.kk)}
+        self.len = self.multiplicities.sum()
+        
+    def get_mode_eigenlevel(self, k):
+        return self.k_ind[k]
+    
+    def __len__(self):
+        return self.len
+    
+    def __getitem__(self, index):
+        return self.lambdas[index]
 
-from unit_circle import get_unit_circle_dataset, unit_circle_eigenvalues
-from hypercube import get_hypercube_dataset, hypercube_eigenvalues
-from hypersphere import get_hypersphere_dataset, hypersphere_eigenvalues
-from image_datasets import get_image_dataset
-
-import utils
-from utils import kernel_predictions, net_predictions
-
-
-
-# helper function used in calculating kappa
-def lrn_sum(kappa, lambdas, mults=1):
-    return (mults * lambdas / (lambdas + kappa)).sum()
-
-# find kappa for a given eigensystem and n
-def find_kappa(n, lambdas, mults=1, ridge=0):
-    kappa = sp.optimize.bisect(lambda k: lrn_sum(k, lambdas, mults=mults) + ridge / k - n, 1e-10, 1e10)
-    return kappa
 
 # compute eigenmode learnabilities
-def eigenmode_learnabilities(n, lambdas, mults=1, ridge=0, kappa=None):
-    if kappa is None:
-        kappa = find_kappa(n, lambdas, mults=mults, ridge=ridge)
+def get_eigenmode_learnabilities(spectrum, kappa):
+    lambdas = spectrum.lambdas
+    return lambdas / (lambdas + kappa)
 
-    if isinstance(lambdas, list):
-        lambdas = np.array(lambdas)
 
-    lrns = lambdas / (lambdas + kappa)
-    return lrns
+# find kappa for a given eigensystem and n
+def find_kappa(n, spectrum, ridge):
+    mults = spectrum.multiplicities
+    
+    def lrn_sum(kappa):
+        eigenlrns = get_eigenmode_learnabilities(spectrum, kappa)
+        return (eigenlrns * mults).sum()
+    
+    kappa = scipy_opt.bisect(lambda kap: lrn_sum(kap) + ridge / (kap+1e-14) - n, 0, 1e10)
+    return kappa
+
 
 # compute pure-noise MSE \mathcal{E}_0
-def noise_fitting_factor(n, lambdas, mults=1, ridge=0, kappa=None):
-    lrns = eigenmode_learnabilities(n, lambdas, mults=mults, ridge=ridge, kappa=kappa)
+def get_overfitting_coefficient(eigenlearnabilities, n, mults):
+    return n / (n - (eigenlearnabilities**2 * mults).sum())
 
-    lrn2_sum = (lrns ** 2 * mults).sum()
 
-    return n / (n - lrn2_sum)
-
-def theoretical_predictions(n, f_terms, kernel_fn=None, domain=None, lambdas=None, mults=1, ridge=0, **kwargs):
-    assert (kernel_fn is not None and domain is not None) or (lambdas is not None)
-
-    # if f_terms is not in dictionary form, make it so (helps with compatibility with synthetic domains)
-    if type(f_terms) in [list, np.ndarray, basenp.ndarray]:
-        f_terms = {i: f_terms[i] for i in range(len(f_terms))}
-
-    # handle the case n=0
-    if n == 0:
-        return {
-            'modewise_lrns': lambdas * 0,
-            'e0': 1,
-            'mse_train': sum([coeff ** 2 for coeff in f_terms.values()]),
-            'mse_test': sum([coeff ** 2 for coeff in f_terms.values()])
-        }
-
-    # if eigenvals aren't provided, compute them from the kernel + synthetic domain
-    if lambdas is None:
-        if domain == 'circle':
-            lambdas, mults = unit_circle_eigenvalues(kernel_fn, kwargs['M']), 1
-        if domain == 'hypercube':
-            lambdas, mults = hypercube_eigenvalues(kernel_fn, kwargs['d'])
-        if domain == 'hypersphere':
-            lambdas, mults = hypersphere_eigenvalues(kernel_fn, kwargs['d'], k_max=70)
-        else:
-            assert 'invalid domain' == True
+def theoretical_predictions(n, eigenlevel_coeffs, spectrum, ridge=0, noise_std=0):
+    assert n > 0
+    assert len(eigenlevel_coeffs) == spectrum.n_levels
+    f = eigenlevel_coeffs
+    mults = spectrum.multiplicities
 
     # compute lrns and e0
-    kappa = find_kappa(n, lambdas, mults=mults, ridge=ridge)
-    lrns = eigenmode_learnabilities(n, lambdas, mults=mults, ridge=ridge, kappa=kappa)
-    e0 = noise_fitting_factor(n, lambdas, mults=mults, ridge=ridge, kappa=kappa)
+    kappa = find_kappa(n, spectrum, ridge)
+    eigenlearnabilities = get_eigenmode_learnabilities(spectrum, kappa)
+    e0 = get_overfitting_coefficient(eigenlearnabilities, n, mults)
 
+    # compute learnability
+    # f are the eigenlevel projection coeffs, so mults are already accounted for
+    L = (f**2 * eigenlearnabilities).sum() / (f**2).sum()
+    
     # compute mse
-    mse_te = 0
-    for f_term in f_terms:
-        k = f_term if isinstance(f_term, int) else f_term[0]
-        mse_te += e0 * (1 - lrns[k]) ** 2 * f_terms[f_term] ** 2
+    test_mse = e0 * (((1-eigenlearnabilities)**2 * f**2).sum() + noise_std**2)cd D
 
-    if 'noise_std' in kwargs:
-        mse_te += e0 * kwargs['noise_std'] ** 2
-
-    mse_tr = (ridge / (n * kappa)) ** 2 * mse_te
-
+    train_mse = (ridge / (n * kappa))**2 * test_mse
+    
     return {
-        'modewise_lrns': lrns,
-        'e0': e0.item(),
-        'mse_train': mse_tr.item(),
-        'mse_test': mse_te.item()
+        "kappa": kappa,
+        "learnability": L,
+        "overfitting_coeff": e0,
+        "train_mse": train_mse,
+        "test_mse": test_mse,
+        "eigenlearnabilities": eigenlearnabilities
     }

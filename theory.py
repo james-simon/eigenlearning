@@ -74,7 +74,7 @@ def theoretical_predictions(n, eigenlevel_coeffs, spectrum, ridge=0, noise_std=0
     L = (f**2 * eigenlearnabilities).sum() / (f**2).sum()
     
     # compute mse
-    test_mse = e0 * (((1-eigenlearnabilities)**2 * f**2).sum() + noise_std**2)cd D
+    test_mse = e0 * (((1-eigenlearnabilities)**2 * f**2).sum() + noise_std**2)
 
     train_mse = (ridge / (n * kappa))**2 * test_mse
     

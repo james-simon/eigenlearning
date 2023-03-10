@@ -1,7 +1,6 @@
 import jax.numpy as jnp
 import scipy.optimize as scipy_opt
 
-
 class Spectrum():
     
     def __init__(self, lambdas, multiplicities=None, kk=None):

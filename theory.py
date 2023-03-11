@@ -2,8 +2,24 @@ import jax.numpy as jnp
 import scipy.optimize as scipy_opt
 
 class Spectrum():
+    """
+    Container for the spectral data of a kernel. Contains the spectrum in order of
+    decreasing eigenvalues, the corresponding multiplicities, the corresponding mode
+    identifiers, and the eigenvalue sorting order (for sorting accompanying eigendata).
+    """
     
     def __init__(self, lambdas, multiplicities=None, kk=None):
+        """
+        lambdas (jax or numpy array): eigenvalues
+        multiplicities (jax or numpy array): multiplicities for each eigenvalue in
+            lambdas. Default: all ones
+        kk (iterable): the mode identifiers associated with the eigenvalues.
+            Default: range(len(lambdas))
+        
+        The initializer will sort the eigenvalues (and correspondingly sort the 
+        multiplicities and kk) in order of decreasing eigenvalue. The sort order is saved.
+        """
+        
         # assert len(jnp.unique(lambdas)) == len(lambdas)
         if multiplicities:
             assert len(multiplicities) == len(lambdas)
@@ -26,6 +42,8 @@ class Spectrum():
         self.len = self.multiplicities.sum()
         
     def get_mode_eigenlevel(self, k):
+        """Return the sorted index of the mode with identifier k."""
+        
         return self.k_ind[k]
     
     def __len__(self):
@@ -35,14 +53,14 @@ class Spectrum():
         return self.lambdas[index]
 
 
-# compute eigenmode learnabilities
 def get_eigenmode_learnabilities(spectrum, kappa):
     lambdas = spectrum.lambdas
     return lambdas / (lambdas + kappa)
 
 
-# find kappa for a given eigensystem and n
 def find_kappa(n, spectrum, ridge):
+    """find kappa for a given dataset size and eigensystem"""
+    
     mults = spectrum.multiplicities
     
     def lrn_sum(kappa):
@@ -53,12 +71,25 @@ def find_kappa(n, spectrum, ridge):
     return kappa
 
 
-# compute pure-noise MSE \mathcal{E}_0
 def get_overfitting_coefficient(eigenlearnabilities, n, mults):
+    """compute pure-noise MSE \mathcal{E}_0"""
+    
     return n / (n - (eigenlearnabilities**2 * mults).sum())
 
 
 def theoretical_predictions(n, eigenlevel_coeffs, spectrum, ridge=0, noise_std=0):
+    """Get theoretical quantities of interest for a given learning problem and dataset size.
+
+    n (float): training dataset size
+    eigenlevel_coeffs (jax or numpy array): the coefficients of the target function in the
+        eigenbasis (ordered by decreasing eigenvalue)
+    spectrum (Spectrum): the kernel spectrum
+    ridge (float): ridge parameter. Default: 0
+    noise_std (float): The standard deviation of the noise. Default: 0
+    
+    Returns: dict{kappa, learnability, overfitting_coeff, train_mse, test_mse, eigenlearnabilities}
+    """
+    
     assert n > 0
     assert len(eigenlevel_coeffs) == spectrum.n_levels
     f = eigenlevel_coeffs

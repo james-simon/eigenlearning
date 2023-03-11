@@ -7,16 +7,19 @@ from neural_tangents import stax
 
 
 def get_net_fns(width, d_out, n_hidden_layers=1, W_std=2**.5, b_std=.1, phi=stax.Relu, phi_deg=40):
-    """Generate JAX functions for a fully-connected network given hyperparameters.
+    """Generate JAX functions for a fully-connected network.
 
-    width -- the width of the hidden layers
-    d_out -- the output dimension
-    n_hidden_layers -- the number of hidden layers
-    W_std -- the initialization standard deviation of the trainable weight parameters
-    b_std -- the initialization standard deviation of the trainable bias parameters
-    phi -- the activation function; should be either 'relu', 'erf', or a function
-    deg -- the approximation degree for computing the kernel if phi's an arbitrary function
+    width (int): the width of the hidden layers
+    d_out (int): the output dimension
+    n_hidden_layers (int): the number of hidden layers. Default: 1
+    W_std (float): the initialization standard deviation of the trainable weight parameters. Default: sqrt(2)
+    b_std (float): the initialization standard deviation of the trainable bias parameters. Default: 0.1
+    phi (function): the activation function; should be either stax.Relu, stax.Erf, or a function. Default: stax.Relu
+    phi_deg (int): the approximation degree for computing the kernel if phi's an arbitrary function. Default: 40
+    
+    Returns: (init_fn, apply_fn_uncentered, kernel_fn)
     """
+    
     if phi in [stax.Relu, stax.Erf]:
         layers = [stax.Dense(width, W_std=W_std, b_std=b_std), phi()] * n_hidden_layers
     else:
@@ -29,6 +32,16 @@ def get_net_fns(width, d_out, n_hidden_layers=1, W_std=2**.5, b_std=.1, phi=stax
 
 
 def train_kernel(kernel_fn, dataset, k_type='ntk', ridge=0):
+    """Train a kernel and return its final predictions.
+
+    kernel_fn (function): a JAX kernel_fn
+    dataset (tuple): (train_X, train_y, test_X, test_y)
+    k_type (str): kernel type (either 'ntk' or 'nngp'). Default: 'ntk'
+    ridge (float): ridge parameter
+    
+    Returns: train_y_hat, test_y_hat
+    """
+    
     train_X, train_y, test_X, test_y = dataset
 
     assert len(train_X) > 0
@@ -43,15 +56,18 @@ def train_kernel(kernel_fn, dataset, k_type='ntk', ridge=0):
 def train_net(net_fns, dataset, loss, subkey, n_epochs, lr, stop_mse=0, print_every=None):
     """Train a neural network and return its final predictions.
 
-    net_fns -- a JAX init_fn, apply_fn (uncentered), and kernel_fn (unused here)
-    dataset -- a double tuple containing (train_X, train_y), (test_X, test_y)
-    loss -- 
-    n_epochs -- the number of epochs to train
-    lr -- the learning rate
-    subkey -- the random key to use for initialization
-    stop_mse -- a lower threshold for training MSE; training stops if it's passed
-    print_every -- if not None, train and test metrics are printed every print_every epochs
+    net_fns (tuple): a JAX init_fn, apply_fn (uncentered), and kernel_fn (unused here)
+    dataset (tuple): (train_X, train_y, test_X, test_y)
+    loss (function(y, y_hat)): loss function to optimize
+    subkey (JAX prng key): the random key to use for initialization
+    n_epochs (int): the max number of epochs to train
+    lr (float): the learning rate
+    stop_mse (float): a lower threshold for training MSE; training stops if it's passed. Default: 0
+    print_every (int): if not None, train and test metrics are printed every print_every epochs. Default: None
+    
+    Returns: train_y_hat, test_y_hat, dict{params, apply_fn, stop_epoch}
     """
+    
     train_X, train_y, test_X, test_y = dataset
 
     assert len(train_X) > 1
@@ -100,6 +116,13 @@ def train_net(net_fns, dataset, loss, subkey, n_epochs, lr, stop_mse=0, print_ev
 
 
 def compute_metrics(y, y_hat):
+    """
+    y (Jax or numpy array): true function
+    y_hat (Jax or numpy array): prediction
+    
+    Returns: learnability, mse, l1_loss, accuracy
+    """
+    
     y, y_hat = y.squeeze(), y_hat.squeeze()
     learnability = ((y * y_hat).sum() / (y ** 2).sum()).item()
     if len(y.shape) == 1:

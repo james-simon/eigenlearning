@@ -12,11 +12,15 @@ from theory import Spectrum
 
 def sample_rotn_invar_kernel(kernel_fn, cosines, d, k_type):
     """Sample different angles of a rotationally-invariant kernel.
-    kernel_fn -- the JAX kernel function to sample; assumed to be rotationally-invariant
-    cosines -- the cosines of the angles at which to sample the kernel
-    d -- the input dimension
-    k_type -- either 'ntk' or 'nngp'
+    
+    kernel_fn (function): the rotationally-invariant neural_tangents kernel function to sample
+    cosines (array): the cosines of the angles at which to sample the kernel
+    d (int): the input dimension
+    k_type (str): either 'ntk' or 'nngp'
+    
+    Returns: kernel between these points and an endpoint
     """
+    
     norm = jnp.sqrt(d)
     sines = (1 - cosines ** 2) ** .5
     u0 = jnp.array([1*(i == 0) for i in range(d)]) # [1, 0, 0, 0, ...]
@@ -46,14 +50,16 @@ class SyntheticDomain(ABC):
 class Hypersphere(SyntheticDomain):
     
     def __init__(self, dim):
-        """ dim (int): embedding dimension of hypersphere (corresponds to S^(d-1)).
         """
+        dim (int): embedding dimension of hypersphere (corresponds to S^(d-1)).
+        """
+        
         assert dim >= 3
         self.dim = int(dim)
     
     def eval_eigenfn(self, k, zs, normalization='norm 1'):
-        """ Return eigenfunction Y_k0 outputs on points with z-coordinates zs
-        """
+        """Return eigenfunction Y_k0 outputs on points with z-coordinates zs"""
+        
         assert normalization in ['norm 1', 'max 1', None]
         d = self.dim
         if normalization == 'norm 1':
@@ -66,19 +72,22 @@ class Hypersphere(SyntheticDomain):
         return eval_gegenbauer(k, d / 2 - 1, zs) * norm_factor
 
     def get_mode_multiplicity(self, k):
-        """ Return the degeneracy of the k-th level of eigenmodes
-        """
+        """Return the degeneracy of the k-th level of eigenmodes"""
+        
         if k == 0:
             return 1
         d = self.dim
         return (2 * k + d - 2) / k * sp.special.comb(k + d - 3, k - 1)
 
     def get_spectrum(self, kernel_fn, k_max=50, k_type='ntk'):
-        """ Return the eigenvalues (+ multiplicities) of the given rotationally-invariant kernel
+        """Return the eigenvalues (+ multiplicities) of the given rotationally-invariant kernel
         on the hypersphere
-        kernel_fn -- The neural_tangents kernel function. Assumed to be rotation-invariant
-        k_max (int) -- The max k for which to compute eigenvalues and multiplicities.
-        k_type (str) -- Either 'ntk' or 'nngp'
+        
+        kernel_fn (function): The rotation-invariant neural_tangents kernel function
+        k_max (int): The max k for which to compute eigenvalues and multiplicities.
+        k_type (str): Either 'ntk' or 'nngp'
+        
+        Returns: Spectrum instance
         """
         
         n_sample_pts = 10 ** 3
@@ -111,16 +120,20 @@ class Hypersphere(SyntheticDomain):
         return Spectrum(eigenvalues, multiplicities, kk)
 
     def get_dataset(self, target, n_train, n_test, subkey=None):
-        """ Generate a dataset on the hypersphere.
+        """Generate a dataset on the hypersphere.
+        
         target (dict): The target function from which samples are drawn. Must be a dictionary mapping
                         eigenmodes to their coefficients, with zero coefficients omitted. For example,
                         {1:3, 2:7} denotes 3*Y_10 + 7*Y_20. To get eigenfunctions besides the m=0 mode, 
                         one can instead supply a (k, unit-vector) pair, and the eigenfunction will be
                         rotated to align with that unit vector instead of the z-axis.
-        n_train (int) -- the trainset size, must be nonzero
-        n_test (int) -- the testset size
-        subkey (int) -- jax prng subkey (one-time use) for random sampling.
+        n_train (int): the trainset size, must be nonzero
+        n_test (int): the testset size
+        subkey (int): jax prng subkey (one-time use) for random sampling.
+        
+        Returns: train_X, train_y, test_X, test_y
         """
+        
         if subkey is None:
             subkey = jnp.array([0, 42], dtype='uint32')
         assert n_train > 0
@@ -150,17 +163,23 @@ class Hypersphere(SyntheticDomain):
 class Hypercube(SyntheticDomain):
     
     def __init__(self, dim):
-        """ dim (int): dimension of hypercube with 2^dim corners.
         """
+        dim (int): dimension of hypercube with 2^dim corners.
+        """
+        
         assert dim >= 1
         self.dim = int(dim)
     
     def get_spectrum(self, kernel_fn, k_type='ntk'):
-        """ Return the eigenvalues (+ multiplicities) of the given rotationally-invariant kernel
+        """Return the eigenvalues (+ multiplicities) of the given rotationally-invariant kernel
         on the hypercube
-        kernel_fn -- The neural_tangents kernel function. Assumed to be rotation-invariant
-        k_type (str) -- Either 'ntk' or 'nngp'
+        
+        kernel_fn (function): The rotation-invariant neural_tangents kernel function. 
+        k_type (str): Either 'ntk' or 'nngp'
+        
+        Returns: Spectrum instance
         """
+        
         cosines = jnp.linspace(1, -1, self.dim + 1)
         Ks = sample_rotn_invar_kernel(kernel_fn, cosines, self.dim, k_type)
 
@@ -192,15 +211,19 @@ class Hypercube(SyntheticDomain):
     
     def get_dataset(self, target, n_train=None, n_test=None, subkey=None):
         """ Generate a dataset on the hypercube.
+        
         target (dict): The target function from which samples are drawn. Must be a dictionary mapping
                         eigenmodes to their coefficients, with zero coefficients omitted. For example,
                         {1:3, 2:7} denotes 3*phi_1 + 7*phi_2, where phi_1 and phi_2 are sensitive to
                         the first 1 and 2 bits, respectively. To choose which spins are sensitive
                         instead of using the first k, a binary vector can be given instead of k.
-        n_train (int) -- the trainset size, must be at least 2. Default: 2^dim (full sample space)
-        n_test (int) -- the testset size. Testset may overlap trainset. Default: 2^dim (full sample space)
-        subkey (int) -- jax prng subkey (one-time use) for random sampling.
+        n_train (int): the trainset size, must be at least 2. Default: 2^dim (full sample space)
+        n_test (int): the testset size. Testset may overlap trainset. Default: 2^dim (full sample space)
+        subkey (int): jax prng subkey (one-time use) for random sampling.
+        
+        Returns: train_X, train_y, test_X, test_y
         """
+        
         if subkey is None:
             subkey = jnp.array([0, 42], dtype='uint32')
         n_bits = self.dim
@@ -246,17 +269,23 @@ class Hypercube(SyntheticDomain):
 class UnitCircle(SyntheticDomain):
     
     def __init__(self, M):
-        """ M (int): the number of points into which we discretize the unit circle.
         """
+        M (int): the number of points into which we discretize the unit circle.
+        """
+        
         assert M >= 2
         self.M = int(M)
     
     def get_spectrum(self, kernel_fn, k_type='ntk'):
         """Return the eigenvalues (+ multiplicities) of the given rotationally-invariant kernel
         on the discretized unit circle.
-        kernel_fn -- The neural_tangents kernel function. Assumed to be rotation-invariant
-        k_type (str) -- Either 'ntk' or 'nngp'
+        
+        kernel_fn (function): The rotation-invariant neural_tangents kernel function
+        k_type (str): Either 'ntk' or 'nngp'
+        
+        Returns: Spectrum instance
         """
+        
         thetas = jnp.linspace(0, 2* jnp.pi, self.M, endpoint=False)
         coords = jnp.vstack([jnp.cos(thetas), jnp.sin(thetas)]).T
         Ks = kernel_fn(coords[0:1], coords, k_type)[0]
@@ -271,14 +300,18 @@ class UnitCircle(SyntheticDomain):
     
     def get_dataset(self, target, n_train=None, n_test=None, subkey=None):
         """Generate a dataset on the hypersphere.
+        
         target (dict): The target function from which samples are drawn. Must be a dictionary
                         mapping eigenmodes to their coefficients, with zero coefficients omitted. For
                         example, [{(1,'c'):1, (2,'s'):7}] denotes one target function of
                         sqrt(2)*1*cos(theta) + sqrt(2)*7*sin(2*theta).
-        n_train (int) -- the trainset size, must be at least 2. Default: M (full sample space)
-        n_test (int) -- the testset size. Testset may overlap trainset. Default: M (full sample space)
-        subkey (int) -- jax prng subkey (one-time use) for random sampling.
+        n_train (int): the trainset size, must be at least 2. Default: M (full sample space)
+        n_test (int): the testset size. Testset may overlap trainset. Default: M (full sample space)
+        subkey (int): jax prng subkey (one-time use) for random sampling.
+        
+        Returns: train_X, train_y, test_X, test_y
         """
+        
         if subkey is None:
             subkey = jnp.array([0, 42], dtype='uint32')
         all_thetas = jnp.linspace(0, 2* jnp.pi, self.M, endpoint=False)
@@ -327,14 +360,15 @@ import torchvision
 def kernel_eigendecomposition(kernel_fn, x_data):
     """
     Eigendecomposition of a data kernel matrix
-    Args:
-        kernel_fn: The kernel function returned by stax
-        x_data: ndarray of input data, length M
-    Returns:
-        tuple(lambdas, U)
+    
+    kernel_fn (function): The neural_tangent kernel function
+    x_data (jax or numpy array): array of input data, length M
+    
+    Returns: (lambdas, U) where
         lambdas: Mx1 jax ndarray eigenvalues, increasing order
         U: MxM jax ndarray, columns are corresponding eigenvectors
     """
+    
     K = kernel_fn(x_data, get='ntk')
     M = len(x_data)
     K = jax.device_put(K)
@@ -354,11 +388,26 @@ class ImageData():
     }
     
     def __init__(self, dataset_name):
+        """
+        dataset_name (str): one of  'mnist', 'fmnist', 'cifar10', 'cifar100'
+        """
+        
         assert dataset_name in self.dataset_dict
         self.name = dataset_name
         self.dataset = self.dataset_dict[dataset_name]
     
     def get_dataset(self, n_train, n_test=None, classes=None, subkey=None):
+        """Generate an image dataset.
+        
+        n_train (int): the trainset size, must be at least 2.
+        n_test (int): the testset size. Testset may overlap trainset. Default: full image test set
+        classes (iterable): a list of groupings of old class labels that each constitute a new class.
+            e.g. [[0,1], [8]] on MNIST would be a binary classification problem where the first class
+            consists of samples of 0's and 1's and the second class has samples of 8's
+        subkey (int): jax prng subkey (one-time use) for random sampling.
+        
+        Returns: train_X, train_y, test_X, test_y
+        """
         
         def get_xy(dataset):
             import numpy as np
@@ -430,11 +479,24 @@ class ImageData():
         return train_X, train_y, test_X, test_y
 
     def get_eigendata(self, kernel_fn, X, y):
+        """Estimate the eigensystem of the given rotationally-invariant kernel
+        on the image classification task.
+        
+        kernel_fn (function): The rotation-invariant neural_tangents kernel function
+        X (jax or numpy array): inputs
+        y (jax or numpy array): labels
+        
+        Returns: dict
+            spectrum (Spectrum instance),
+            eigenvecs (jax array with column eigenvectors, sorted by decr eigenvalue),
+            eigenlevel_coeffs (jax array of sorted eigencoefficients of y)}
+        """
+        
         eigenvalues, eigenvectors = kernel_eigendecomposition(kernel_fn, X)
         spectrum = Spectrum(eigenvalues)
         y_eigencoeffs = jnp.matmul(eigenvectors.T, y).reshape(-1)
         y_eigencoeffs = y_eigencoeffs / jnp.linalg.norm(y_eigencoeffs)
-        eigenvectors = eigenvectors[spectrum.sort_order]
+        eigenvectors = eigenvectors.T[spectrum.sort_order].T
         y_eigencoeffs = y_eigencoeffs[spectrum.sort_order]
         return {
             "spectrum": spectrum,

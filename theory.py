@@ -67,7 +67,7 @@ def find_kappa(n, spectrum, ridge):
         eigenlrns = get_eigenmode_learnabilities(spectrum, kappa)
         return (eigenlrns * mults).sum()
     
-    kappa = scipy_opt.bisect(lambda kap: lrn_sum(kap) + ridge / (kap+1e-14) - n, 0, 1e10)
+    kappa = scipy_opt.bisect(lambda kap: lrn_sum(kap) + ridge / kap - n, 1e-15, 1e10)
     return kappa
 
 

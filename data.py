@@ -458,6 +458,7 @@ class ImageData():
         # cut and convert raw datasets
         train_X, train_y = get_xy(self.raw_train)
         test_X, test_y = get_xy(self.raw_test)
+
         
         # get training and test subset
         if subkey is None:

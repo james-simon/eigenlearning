@@ -386,6 +386,9 @@ class ImageData():
         'cifar10': torchvision.datasets.CIFAR10,
         'cifar100': torchvision.datasets.CIFAR100,
     }
+
+    raw_train = None
+    raw_test = None
     
     def __init__(self, dataset_name):
         """
@@ -419,7 +422,7 @@ class ImageData():
                 # convert old class labels to new
                 converter = -1 * np.ones(n_classes)
                 for new_class, group in enumerate(classes):
-                    group = [group] if type(group)==int else group
+                    group = [group] if type(group) == int else group
                     for old_class in group:
                         converter[old_class] = new_class
                 # remove datapoints not in new classes
@@ -445,11 +448,16 @@ class ImageData():
             x, y = jnp.array(x), jnp.array(y)
             return x, y
 
-        train = self.dataset_dict[self.name](root='./data', train=True, download=True, transform=None)
-        train_X, train_y = get_xy(train)
-        
-        test = self.dataset_dict[self.name](root='./data', train=False, download=True, transform=None)
-        test_X, test_y = get_xy(test)
+        # load raw train and test data if it hasn't been done already
+        if self.raw_train is None:
+            self.raw_train = self.dataset_dict[self.name](root='./data', train=True, download=True, transform=None)
+
+        if self.raw_test is None:
+            self.raw_test = self.dataset_dict[self.name](root='./data', train=False, download=True, transform=None)
+
+        # cut and convert raw datasets
+        train_X, train_y = get_xy(self.raw_train)
+        test_X, test_y = get_xy(self.raw_test)
         
         # get training and test subset
         if subkey is None:
